@@ -1,0 +1,6 @@
+{
+  "name": "OpusWeb",
+  "description": "Browser-based MuseScore-compatible music notation editor with local file import, web link loading, SVG engraving, and polyphonic audio playback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

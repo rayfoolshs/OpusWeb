@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Lora', Georgia, serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    font-family: var(--font-sans);
+    background-color: #14171c;
+    color: #e5e7eb;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.font-serif-score {
+  font-family: var(--font-serif);
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom sleek studio scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #14171c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2c323d;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d4554;
+}
+
+/* Print / PDF Export Mode: hide all studio chrome, print only crisp sheet music pages */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .score-scroll-area {
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    display: block !important;
+  }
+
+  .score-page-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    page-break-after: always;
+    transform: none !important;
+  }
+
+  .score-page-sheet:last-child {
+    page-break-after: auto;
+  }
+}
