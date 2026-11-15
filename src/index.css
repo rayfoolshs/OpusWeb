@@ -5,6 +5,88 @@
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-serif: 'Lora', Georgia, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+    /* Dark studio theme (default) */
+    --bg-app: #14171c;
+    --bg-ribbon: #1c2027;
+    --bg-panel: #181b21;
+    --bg-canvas: #1b1e24;
+    --bg-raised: #1b1f27;
+    --bg-sunken: #121419;
+    --bg-sunken-hover: #171b22;
+    --bg-card: #1e222a;
+    --bg-card-2: #1f242d;
+    --bg-button: #262b35;
+    --bg-button-hover: #313846;
+    --bg-active: #252a34;
+
+    --text-strong: #f8fafc;
+    --text: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --border-soft: rgba(255, 255, 255, 0.06);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --surface-soft: rgba(255, 255, 255, 0.06);
+    --surface-hover: rgba(255, 255, 255, 0.1);
+
+    --accent-text: #60a5fa;
+    --accent-text-strong: #93c5fd;
+
+    --scrollbar-track: #14171c;
+    --scrollbar-thumb: #2c323d;
+    --scrollbar-thumb-hover: #3d4554;
+
+    --page-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    --page-border: rgba(15, 23, 42, 0.12);
+
+    --knob-bg: #3a424f;
+    --knob-border: rgba(255, 255, 255, 0.22);
+
+    color-scheme: dark;
+  }
+
+  /* Light studio theme: warm paper workspace with the sheet still white */
+  :root[data-theme='light'] {
+    --bg-app: #edf0f5;
+    --bg-ribbon: #f7f9fc;
+    --bg-panel: #ffffff;
+    --bg-canvas: #e2e7ef;
+    --bg-raised: #ffffff;
+    --bg-sunken: #f1f4f9;
+    --bg-sunken-hover: #e9edf4;
+    --bg-card: #f7f9fc;
+    --bg-card-2: #fbfcfe;
+    --bg-button: #f1f4f9;
+    --bg-button-hover: #e3e9f2;
+    --bg-active: #ffffff;
+
+    --text-strong: #0f172a;
+    --text: #334155;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+
+    --border: rgba(15, 23, 42, 0.1);
+    --border-soft: rgba(15, 23, 42, 0.07);
+    --border-strong: rgba(15, 23, 42, 0.18);
+    --surface-soft: rgba(15, 23, 42, 0.05);
+    --surface-hover: rgba(15, 23, 42, 0.09);
+
+    --accent-text: #2563eb;
+    --accent-text-strong: #1d4ed8;
+
+    --scrollbar-track: #edf0f5;
+    --scrollbar-thumb: #c3cbd8;
+    --scrollbar-thumb-hover: #a8b3c4;
+
+    --page-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    --page-border: rgba(15, 23, 42, 0.1);
+
+    --knob-bg: #ffffff;
+    --knob-border: rgba(15, 23, 42, 0.2);
+
+    color-scheme: light;
   }
 
   html,
@@ -12,10 +94,15 @@
   #root {
     height: 100%;
     font-family: var(--font-sans);
-    background-color: #14171c;
-    color: #e5e7eb;
+    background-color: var(--bg-app);
+    color: var(--text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    transition: background-color 240ms ease, color 240ms ease;
   }
 }
 
@@ -35,16 +122,22 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #14171c;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2c323d;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d4554;
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Sheet pages keep their white paper in both themes, with a softer shadow in light mode */
+.score-page-sheet {
+  box-shadow: var(--page-shadow);
+  border-color: var(--page-border);
 }
 
 /* Print / PDF Export Mode: hide all studio chrome, print only crisp sheet music pages */

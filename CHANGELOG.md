@@ -2,6 +2,32 @@
 
 All notable changes to OpusWeb are documented in this file.
 
+## [1.1.0] - 2026-11-15
+
+### Added
+- **Light & dark studio themes** with a draggable sun/moon slider in the header (keyboard accessible; persisted in `localStorage`). Sheet pages stay white in both themes.
+- **Guitar TAB fingering editor**: choose a string and fret in the Inspector, or click a fret number on the TAB staff and type digits (buffered for two-digit frets). The notation above updates to the matching pitch.
+- **Bass TAB support**: 4-string EADG tablature with its own tuning/voicing model, plus a `Linked Bass TAB` toggle.
+- **Sampled General MIDI playback** from the free **Musyng Kite** soundfont (CC BY-SA 3.0), streamed on demand with GitHub Pages and jsDelivr mirrors, decoded by `soundfont-player`, with a synth fallback while loading or offline.
+- **New instruments**: Electric Guitar, Bass Guitar, Brass Section, and Drum Kit, joining the existing piano, strings, woodwind, brass, and choir presets.
+- **Drum Kit part** with a percussion clef, drum-piece legend, nearest-position mapping, and a synthesized acoustic-style kit (kick, snare, side stick, clap, closed/open/pedal hi-hat, three toms, crash, ride, cowbell).
+- **Chord Leadsheet**: a new **Chords** tab to add chord symbols at any beat with quick-add presets; symbols are engraved above the staff and played back as block chords. Supports maj/min/dim/aug/sus/6/7/maj7/m7/9/add9/m7♭5/dim7 and slash chords.
+- **Repeat barline playback**: `|: … :|` sections are expanded and played twice; written repeats also render on linked TAB and percussion staves.
+- **Version & author identity**: header now shows `OpusWeb v1.1.0 · by Ray Foo`; package metadata updated.
+- **Documentation set**: rewritten README and user guide, new FEATURES reference, updated architecture/contributing docs.
+
+### Changed
+- New Score now lists only curated, sampled instrument templates (Piano, Acoustic Guitar + TAB, Solo Violin, Solo Cello, Solo Flute, Solo Trumpet, String Quartet, SATB Choir) with soundfont attribution.
+- Parts now carry a GM `program`; the audio engine resolves sampled instruments per part and preloads them on the first user gesture.
+- TAB handling is generalized behind `TabInstrumentConfig`, so guitar and bass share rendering, hit-testing, and fret editing.
+- `Linked Guitar TAB` is now shown only for guitar-family parts; bass parts get `Linked Bass TAB`.
+- UI chrome moved to CSS theme tokens for consistent light/dark styling.
+
+### Fixed
+- Repeat barlines previously only drew; they now affect playback order.
+- Linked TAB is no longer offered on piano, strings, brass, voice, or drum parts.
+- Bass tablature no longer applies the guitar octave transposition.
+
 ## [1.0.0] - 2026-11-14
 
 ### Added

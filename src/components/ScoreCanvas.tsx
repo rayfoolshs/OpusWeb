@@ -29,18 +29,22 @@ import {
   ScoreDocument,
   SelectionTarget,
 } from '../types/score';
+import { drumLabelForPitch } from '../audio/drumKit';
+import { sortedChords } from '../utils/chords';
 import {
   DURATION_TO_VEXFLOW,
   accidentalToVexSymbol,
   accidentalTypeToAlter,
   alterToAccidentalType,
-  assignGuitarChordTabPositions,
+  assignTabPositions,
   formatPitchName,
   getEffectiveMeasureContext,
   getEventBeats,
   getKeySignatureAlterMap,
   getMeasureCapacityBeats,
   getVexKeySignature,
+  getTabConfig,
+  supportsGuitarTab,
   pitchToVexKey,
   staffStepToPitch,
 } from '../utils/musicTheory';
@@ -73,6 +77,8 @@ interface HitTarget {
   measureIndex: number;
   voiceIndex: number;
   eventId: string;
+  source: 'notation' | 'tab';
+  noteIndex?: number;
   x: number;
   y: number;
   width: number;
@@ -109,6 +115,7 @@ interface HoverGhost {
   x: number;
   y: number;
   pitch: Pitch;
+  clef: ClefType;
   stepsFromBottomLine: number;
   topLineY: number;
   bottomLineY: number;
@@ -146,6 +153,8 @@ function getRestKeyForClef(clef: ClefType): string {
       return 'c/4';
     case 'tenor':
       return 'a/3';
+    case 'percussion':
+      return 'b/4';
     default:
       return 'b/4';
   }
@@ -228,7 +237,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
 
     // Compute vertical height of a single system (including linked Guitar TAB staves)
     const totalStaves = score.parts.reduce(
-      (sum, p) => sum + p.staves.length + (p.showTab ? 1 : 0),
+      (sum, p) => sum + p.staves.length + (p.showTab && supportsGuitarTab(p) ? 1 : 0),
       0
     );
     const systemHeight =
@@ -308,7 +317,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
         const isMultiPart =
           score.parts.length > 1 ||
           (score.parts[0]?.staves.length || 0) > 1 ||
-          score.parts.some((p) => Boolean(p.showTab));
+          score.parts.some((p) => Boolean(p.showTab) && supportsGuitarTab(p));
         const leftLabelReserve = sysLocalIdx === 0 && page.hasHeader && isMultiPart ? 48 : 16;
         const availSysWidth = USABLE_WIDTH - leftLabelReserve;
         const startSysX = MARGIN_X + leftLabelReserve;
@@ -334,7 +343,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             const notationY = staffY;
             staffY += STAFF_SPACING;
             let tabY: number | undefined;
-            if (part.showTab && sIdx === part.staves.length - 1) {
+            if (part.showTab && supportsGuitarTab(part) && sIdx === part.staves.length - 1) {
               tabY = staffY - 4;
               staffY += STAFF_SPACING;
             }
@@ -377,6 +386,8 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             voiceIdx: number;
             eventId: string;
             staveNote: StaveNote | TabNote;
+            source: 'notation' | 'tab';
+            tabStops?: { noteIndex: number; str: number }[];
             beatStart: number;
             beatDuration: number;
           }[] = [];
@@ -389,6 +400,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             const staff = part.staves[staffIdx];
             const measure = staff.measures[mIdx];
             if (!measure) return;
+            const tabConfig = getTabConfig(part);
 
             const eff = getEffectiveMeasureContext(part, staffIdx, mIdx, score.defaultTempo);
             const stave = new Stave(measureX, y, mWidth);
@@ -411,10 +423,13 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             if (showClef) {
               stave.addClef(eff.clef);
             }
-            if (showKey && eff.keyFifths !== 0) {
-              stave.addKeySignature(getVexKeySignature(eff.keyFifths));
-            } else if (showKey && measure.attributes.keyFifths === 0 && mIdx > 0 && posInSys > 0) {
-              stave.addKeySignature('C');
+            // Percussion staves never display a key signature
+            if (eff.clef !== 'percussion') {
+              if (showKey && eff.keyFifths !== 0) {
+                stave.addKeySignature(getVexKeySignature(eff.keyFifths));
+              } else if (showKey && measure.attributes.keyFifths === 0 && mIdx > 0 && posInSys > 0) {
+                stave.addKeySignature('C');
+              }
             }
             if (showTime) {
               stave.addTimeSignature(`${eff.beats}/${eff.beatType}`);
@@ -445,10 +460,10 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             stave.setContext(context).draw();
             staveMap.set(`${partIdx}:${staffIdx}`, stave);
 
-            // Linked Guitar Tablature Stave right below notation staff
+            // Linked Guitar/Bass Tablature Stave right below notation staff
             let tabStave: TabStave | null = null;
-            if (tabY !== undefined) {
-              tabStave = new TabStave(measureX, tabY, mWidth);
+            if (tabY !== undefined && tabConfig) {
+              tabStave = new TabStave(measureX, tabY, mWidth, { num_lines: tabConfig.strings });
               if (measure.attributes.barlineLeft) {
                 tabStave.setBegBarType(mapBarlineToVex(measure.attributes.barlineLeft));
               }
@@ -595,6 +610,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                   voiceIdx,
                   eventId: ev.id,
                   staveNote: vfNote,
+                  source: 'notation',
                   beatStart: beatCursor,
                   beatDuration: evBeats,
                 });
@@ -631,7 +647,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
               }
 
               // Render synchronized Guitar Tablature voice for primary voice
-              if (tabStave && voiceIdx === 0 && voiceEvents.length > 0) {
+              if (tabStave && tabConfig && voiceIdx === 0 && voiceEvents.length > 0) {
                 const tabTickables: (TabNote | GhostNote)[] = [];
                 const tabTracker: {
                   tabNote: TabNote | null;
@@ -655,7 +671,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                       const bVal = b.pitch.octave * 7 + 'CDEFGAB'.indexOf(b.pitch.step);
                       return aVal - bVal;
                     });
-                    const assigned = assignGuitarChordTabPositions(sortedNotes);
+                    const assigned = assignTabPositions(sortedNotes, tabConfig);
                     const positions = assigned.map((p) => ({ str: p.str, fret: p.fret }));
 
                     const tNote = new TabNote({
@@ -671,6 +687,11 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                       voiceIdx,
                       eventId: ev.id,
                       staveNote: tNote,
+                      source: 'tab',
+                      tabStops: assigned.map((p) => ({
+                        noteIndex: ev.notes.findIndex((nh) => nh.id === p.noteId),
+                        str: p.str,
+                      })),
                       beatStart: tabBeatCursor,
                       beatDuration: evBeats,
                     });
@@ -806,7 +827,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
               if (part.staves.length > 1) {
                 const topS = staveMap.get(`${pIdx}:0`);
                 const botS =
-                  (part.showTab && tabStaveMap.get(`${pIdx}:${part.staves.length - 1}`)) ||
+                  (part.showTab && supportsGuitarTab(part) && tabStaveMap.get(`${pIdx}:${part.staves.length - 1}`)) ||
                   staveMap.get(`${pIdx}:${part.staves.length - 1}`);
                 if (topS && botS) {
                   new StaveConnector(topS, botS)
@@ -814,7 +835,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                     .setContext(context)
                     .draw();
                 }
-              } else if (part.showTab) {
+              } else if (part.showTab && supportsGuitarTab(part)) {
                 const topS = staveMap.get(`${pIdx}:0`);
                 const botTab = tabStaveMap.get(`${pIdx}:0`);
                 if (topS && botTab) {
@@ -873,6 +894,35 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
           noteRenderRecords.forEach((rec) => {
             try {
               const bb = rec.staveNote.getBoundingBox();
+              const tabStave = tabStaveMap.get(`${rec.partIdx}:${rec.staffIdx}`);
+
+              // Guitar TAB: one hit box per fret number so the exact string can be selected
+              if (rec.source === 'tab' && tabStave && rec.tabStops && rec.tabStops.length > 0) {
+                const startX = (bb ? bb.getX() : rec.staveNote.getAbsoluteX()) - 4;
+                const hitWidth = Math.max(18, bb ? bb.getW() + 4 : 18);
+                rec.tabStops.forEach((stop) => {
+                  const lineY = tabStave.getYForLine(stop.str - 1);
+                  newHitTargets.push({
+                    pageIdx: page.pageIdx,
+                    partIndex: rec.partIdx,
+                    staffIndex: rec.staffIdx,
+                    measureIndex: mIdx,
+                    voiceIndex: rec.voiceIdx,
+                    eventId: rec.eventId,
+                    source: 'tab',
+                    noteIndex: stop.noteIndex >= 0 ? stop.noteIndex : undefined,
+                    x: startX,
+                    y: lineY - 9,
+                    width: hitWidth,
+                    height: 18,
+                    centerX: startX + hitWidth / 2,
+                    beatStart: rec.beatStart,
+                    beatDuration: rec.beatDuration,
+                  });
+                });
+                return;
+              }
+
               const x = bb ? bb.getX() - 4 : rec.staveNote.getAbsoluteX() - 8;
               const y = bb ? bb.getY() - 4 : staffYPositions[0].y;
               const width = bb ? Math.max(20, bb.getW() + 8) : 24;
@@ -884,6 +934,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                 measureIndex: mIdx,
                 voiceIndex: rec.voiceIdx,
                 eventId: rec.eventId,
+                source: rec.source,
                 x,
                 y,
                 width,
@@ -983,6 +1034,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
       x: ghostX,
       y: snappedY,
       pitch,
+      clef: geo.clef,
       stepsFromBottomLine: clampedSteps,
       topLineY: geo.topLineY,
       bottomLineY: geo.bottomLineY,
@@ -1013,8 +1065,8 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
       return;
     }
 
-    // Select hit target if clicked
-    const hit = hitTargets.find(
+    // Select the nearest hit target under the pointer (TAB chord lines sit close together)
+    const candidates = hitTargets.filter(
       (h) =>
         h.pageIdx === pageIdx &&
         mx >= h.x - 4 &&
@@ -1022,6 +1074,12 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
         my >= h.y - 6 &&
         my <= h.y + h.height + 6
     );
+    const hit = candidates.reduce<HitTarget | null>((best, h) => {
+      if (!best) return h;
+      const bestDist = Math.hypot(mx - best.centerX, my - (best.y + best.height / 2));
+      const dist = Math.hypot(mx - h.centerX, my - (h.y + h.height / 2));
+      return dist < bestDist ? h : best;
+    }, null);
     if (hit) {
       onSelectEvent({
         partIndex: hit.partIndex,
@@ -1029,6 +1087,8 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
         measureIndex: hit.measureIndex,
         voiceIndex: hit.voiceIndex,
         eventId: hit.eventId,
+        source: hit.source,
+        noteIndex: hit.noteIndex,
       });
       return;
     }
@@ -1067,10 +1127,16 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
   }, [isPlaying, playhead, measureGeometries]);
 
   const scaledWidth = Math.round(PAGE_WIDTH * zoom);
+  const hoverGhostLabel = hoverGhost
+    ? hoverGhost.clef === 'percussion'
+      ? drumLabelForPitch(hoverGhost.pitch)
+      : formatPitchName(hoverGhost.pitch)
+    : '';
+  const hoverGhostTagWidth = Math.max(34, hoverGhostLabel.length * 6 + 12);
 
   return (
     <div
-      className="score-scroll-area relative flex-1 overflow-auto bg-[#1B1E24] p-6 sm:p-10 flex flex-col items-center gap-8 select-none"
+      className="score-scroll-area relative flex-1 overflow-auto bg-[var(--bg-canvas)] p-6 sm:p-10 flex flex-col items-center gap-8 select-none"
       onDragOver={(e) => {
         e.preventDefault();
         setIsDraggingFile(true);
@@ -1085,9 +1151,9 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
     >
       {isDraggingFile && (
         <div className="fixed inset-0 z-50 bg-blue-950/70 backdrop-blur-xs flex items-center justify-center pointer-events-none">
-          <div className="bg-[#181B21] border border-blue-500 rounded-xl px-8 py-6 text-center shadow-2xl">
-            <p className="text-base font-semibold text-white">Drop score file to open in OpusWeb</p>
-            <p className="text-xs text-slate-400 mt-1">
+          <div className="bg-[var(--bg-panel)] border border-blue-500 rounded-xl px-8 py-6 text-center shadow-2xl">
+            <p className="text-base font-semibold text-[var(--text-strong)]">Drop score file to open in OpusWeb</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Supports .mscz, .mscx, .musicxml, .mxl, .xml, .mid, and .json
             </p>
           </div>
@@ -1097,15 +1163,23 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
       {layoutPages.map((page) => {
         const scaledHeight = Math.round(page.height * zoom);
         const pageHits = hitTargets.filter((h) => h.pageIdx === page.pageIdx);
-        const selectedHit = selection?.eventId
-          ? pageHits.find(
+        const matchingHits = selection?.eventId
+          ? pageHits.filter(
               (h) =>
                 h.eventId === selection.eventId &&
                 h.partIndex === selection.partIndex &&
                 h.staffIndex === selection.staffIndex &&
                 h.measureIndex === selection.measureIndex
             )
-          : null;
+          : [];
+        const selectedHit =
+          matchingHits.find(
+            (h) =>
+              (!selection?.source || h.source === selection.source) &&
+              (selection?.noteIndex === undefined || h.noteIndex === selection.noteIndex)
+          ) ||
+          matchingHits[0] ||
+          null;
         const selectedMeasureGeo =
           selection && !selection.eventId
             ? measureGeometries.find(
@@ -1177,6 +1251,47 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
               onMouseLeave={() => setHoverGhost(null)}
               onClick={(e) => handleOverlayClick(e, page.pageIdx)}
             >
+              {/* Lead-sheet chord symbols above the top staff */}
+              {measureGeometries
+                .filter(
+                  (geo) =>
+                    geo.pageIdx === page.pageIdx && geo.partIndex === 0 && geo.staffIndex === 0
+                )
+                .map((geo) => {
+                  const measure = score.parts[0]?.staves[0]?.measures[geo.measureIndex];
+                  const chords = measure?.chordSymbols;
+                  if (!chords || chords.length === 0) return null;
+
+                  const startX = geo.noteStartX + 6;
+                  const endX = geo.x + geo.width - 14;
+                  const span = Math.max(20, endX - startX);
+
+                  return sortedChords(chords).map((chord) => {
+                    const offset = Math.max(0, Math.min(geo.capacityBeats, chord.beat));
+                    const x =
+                      startX +
+                      (offset / Math.max(0.25, geo.capacityBeats)) * span;
+
+                    return (
+                      <text
+                        key={`chord-${geo.measureIndex}-${chord.id}`}
+                        x={x}
+                        y={geo.topLineY - 24}
+                        fill="#0F172A"
+                        stroke="#FFFFFF"
+                        strokeWidth={3}
+                        paintOrder="stroke"
+                        fontSize={13}
+                        fontWeight={700}
+                        fontFamily="Lora, Georgia, serif"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {chord.symbol}
+                      </text>
+                    );
+                  });
+                })}
+
               {/* Selected measure subtle frame */}
               {selectedMeasureGeo && (
                 <rect
@@ -1267,13 +1382,13 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                     <rect
                       x={0}
                       y={0}
-                      width={34}
+                      width={hoverGhostTagWidth}
                       height={18}
                       rx={3}
                       fill="#1E293B"
                     />
                     <text
-                      x={17}
+                      x={hoverGhostTagWidth / 2}
                       y={12.5}
                       textAnchor="middle"
                       fill="#FFFFFF"
@@ -1281,7 +1396,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
                       fontFamily="JetBrains Mono, monospace"
                       fontWeight={600}
                     >
-                      {formatPitchName(hoverGhost.pitch)}
+                      {hoverGhostLabel}
                     </text>
                   </g>
                 </g>
@@ -1304,7 +1419,7 @@ export const ScoreCanvas: React.FC<ScoreCanvasProps> = ({
             {/* Page Number Footer */}
             {pageView && (
               <div
-                className="absolute bottom-3 inset-x-0 text-center text-slate-400 font-mono-tabular pointer-events-none"
+                className="absolute bottom-3 inset-x-0 text-center text-[var(--text-muted)] font-mono-tabular pointer-events-none"
                 style={{ fontSize: `${Math.max(10, Math.round(11 * zoom))}px` }}
               >
                 {page.pageIdx + 1} / {layoutPages.length}

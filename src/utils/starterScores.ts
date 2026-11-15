@@ -433,8 +433,18 @@ export interface NewScoreOptions {
   beatType: number;
   tempo: number;
   measureCount: number;
-  template: 'piano' | 'treble' | 'bass' | 'guitar' | 'quartet' | 'choir';
+  template: NewScoreTemplate;
 }
+
+export type NewScoreTemplate =
+  | 'piano'
+  | 'guitar'
+  | 'violin'
+  | 'cello'
+  | 'flute'
+  | 'trumpet'
+  | 'quartet'
+  | 'choir';
 
 function makeBlankStaff(
   clef: ClefType,
@@ -464,75 +474,78 @@ function makeBlankStaff(
 }
 
 export function createBlankScore(opts: NewScoreOptions): ScoreDocument {
+  const makePart = (
+    name: string,
+    shortName: string,
+    timbre: InstrumentTimbre,
+    program: number,
+    clef: ClefType,
+    includeTempo: boolean,
+    showTab = false
+  ): Part => ({
+    id: uid('part'),
+    name,
+    shortName,
+    timbre,
+    program,
+    volume: 0.85,
+    muted: false,
+    solo: false,
+    showTab: showTab || undefined,
+    staves: [makeBlankStaff(clef, opts, includeTempo)],
+  });
+
   let parts: Part[] = [];
 
-  if (opts.template === 'piano') {
-    parts = [
-      {
-        id: uid('part'),
-        name: 'Piano',
-        shortName: 'Pno.',
-        timbre: 'piano',
-        volume: 0.9,
-        muted: false,
-        solo: false,
-        staves: [makeBlankStaff('treble', opts, true), makeBlankStaff('bass', opts, false)],
-      },
-    ];
-  } else if (opts.template === 'treble') {
-    parts = [
-      {
-        id: uid('part'),
-        name: 'Lead Instrument',
-        shortName: 'Solo',
-        timbre: 'woodwind',
-        volume: 0.9,
-        muted: false,
-        solo: false,
-        staves: [makeBlankStaff('treble', opts, true)],
-      },
-    ];
-  } else if (opts.template === 'bass') {
-    parts = [
-      {
-        id: uid('part'),
-        name: 'Cello / Bass',
-        shortName: 'Vc.',
-        timbre: 'strings',
-        volume: 0.9,
-        muted: false,
-        solo: false,
-        staves: [makeBlankStaff('bass', opts, true)],
-      },
-    ];
-  } else if (opts.template === 'guitar') {
-    parts = [
-      {
-        id: uid('part'),
-        name: 'Acoustic Guitar',
-        shortName: 'Gtr.',
-        timbre: 'guitar',
-        volume: 0.9,
-        muted: false,
-        solo: false,
-        showTab: true,
-        staves: [makeBlankStaff('treble', opts, true)],
-      },
-    ];
-  } else if (opts.template === 'quartet') {
-    parts = [
-      { id: uid('part'), name: 'Violin I', shortName: 'Vln. I', timbre: 'strings', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('treble', opts, true)] },
-      { id: uid('part'), name: 'Violin II', shortName: 'Vln. II', timbre: 'strings', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('treble', opts, false)] },
-      { id: uid('part'), name: 'Viola', shortName: 'Vla.', timbre: 'strings', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('alto', opts, false)] },
-      { id: uid('part'), name: 'Violoncello', shortName: 'Vc.', timbre: 'strings', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('bass', opts, false)] },
-    ];
-  } else if (opts.template === 'choir') {
-    parts = [
-      { id: uid('part'), name: 'Soprano', shortName: 'S.', timbre: 'voice', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('treble', opts, true)] },
-      { id: uid('part'), name: 'Alto', shortName: 'A.', timbre: 'voice', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('treble', opts, false)] },
-      { id: uid('part'), name: 'Tenor', shortName: 'T.', timbre: 'voice', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('treble', opts, false)] },
-      { id: uid('part'), name: 'Bass', shortName: 'B.', timbre: 'voice', volume: 0.85, muted: false, solo: false, staves: [makeBlankStaff('bass', opts, false)] },
-    ];
+  switch (opts.template) {
+    case 'piano':
+      parts = [
+        {
+          id: uid('part'),
+          name: 'Piano',
+          shortName: 'Pno.',
+          timbre: 'piano',
+          program: 0,
+          volume: 0.9,
+          muted: false,
+          solo: false,
+          staves: [makeBlankStaff('treble', opts, true), makeBlankStaff('bass', opts, false)],
+        },
+      ];
+      break;
+    case 'guitar':
+      parts = [makePart('Acoustic Guitar', 'Gtr.', 'guitar', 25, 'treble', true, true)];
+      break;
+    case 'violin':
+      parts = [makePart('Violin', 'Vln.', 'strings', 40, 'treble', true)];
+      break;
+    case 'cello':
+      parts = [makePart('Violoncello', 'Vc.', 'strings', 42, 'bass', true)];
+      break;
+    case 'flute':
+      parts = [makePart('Flute', 'Fl.', 'woodwind', 73, 'treble', true)];
+      break;
+    case 'trumpet':
+      parts = [makePart('Trumpet', 'Tpt.', 'brass', 56, 'treble', true)];
+      break;
+    case 'quartet':
+      parts = [
+        makePart('Violin I', 'Vln. I', 'strings', 40, 'treble', true),
+        makePart('Violin II', 'Vln. II', 'strings', 40, 'treble', false),
+        makePart('Viola', 'Vla.', 'strings', 41, 'alto', false),
+        makePart('Violoncello', 'Vc.', 'strings', 42, 'bass', false),
+      ];
+      break;
+    case 'choir':
+      parts = [
+        makePart('Soprano', 'S.', 'voice', 52, 'treble', true),
+        makePart('Alto', 'A.', 'voice', 52, 'treble', false),
+        makePart('Tenor', 'T.', 'voice', 52, 'treble', false),
+        makePart('Bass', 'B.', 'voice', 52, 'bass', false),
+      ];
+      break;
+    default:
+      parts = [makePart('Piano', 'Pno.', 'piano', 0, 'treble', true)];
   }
 
   return {
@@ -552,19 +565,26 @@ export const INSTRUMENT_PRESETS: {
   name: string;
   shortName: string;
   timbre: InstrumentTimbre;
+  /** General MIDI program backed by the sampled Playback soundfont */
+  program: number;
   staves: ClefType[];
   showTab?: boolean;
+  drumKit?: boolean;
 }[] = [
-  { id: 'piano', name: 'Piano', shortName: 'Pno.', timbre: 'piano', staves: ['treble', 'bass'] },
-  { id: 'violin', name: 'Violin', shortName: 'Vln.', timbre: 'strings', staves: ['treble'] },
-  { id: 'viola', name: 'Viola', shortName: 'Vla.', timbre: 'strings', staves: ['alto'] },
-  { id: 'cello', name: 'Violoncello', shortName: 'Vc.', timbre: 'strings', staves: ['bass'] },
-  { id: 'flute', name: 'Flute', shortName: 'Fl.', timbre: 'woodwind', staves: ['treble'] },
-  { id: 'clarinet', name: 'Clarinet in B♭', shortName: 'Cl.', timbre: 'woodwind', staves: ['treble'] },
-  { id: 'trumpet', name: 'Trumpet', shortName: 'Tpt.', timbre: 'brass', staves: ['treble'] },
-  { id: 'horn', name: 'French Horn', shortName: 'Hn.', timbre: 'brass', staves: ['treble'] },
-  { id: 'guitar', name: 'Acoustic Guitar', shortName: 'Gtr.', timbre: 'guitar', staves: ['treble'], showTab: true },
-  { id: 'voice', name: 'Voice', shortName: 'Voc.', timbre: 'voice', staves: ['treble'] },
+  { id: 'piano', name: 'Piano', shortName: 'Pno.', timbre: 'piano', program: 0, staves: ['treble', 'bass'] },
+  { id: 'violin', name: 'Violin', shortName: 'Vln.', timbre: 'strings', program: 40, staves: ['treble'] },
+  { id: 'viola', name: 'Viola', shortName: 'Vla.', timbre: 'strings', program: 41, staves: ['alto'] },
+  { id: 'cello', name: 'Violoncello', shortName: 'Vc.', timbre: 'strings', program: 42, staves: ['bass'] },
+  { id: 'flute', name: 'Flute', shortName: 'Fl.', timbre: 'woodwind', program: 73, staves: ['treble'] },
+  { id: 'clarinet', name: 'Clarinet', shortName: 'Cl.', timbre: 'woodwind', program: 71, staves: ['treble'] },
+  { id: 'trumpet', name: 'Trumpet', shortName: 'Tpt.', timbre: 'brass', program: 56, staves: ['treble'] },
+  { id: 'horn', name: 'French Horn', shortName: 'Hn.', timbre: 'brass', program: 60, staves: ['treble'] },
+  { id: 'guitar', name: 'Acoustic Guitar', shortName: 'Gtr.', timbre: 'guitar', program: 25, staves: ['treble'], showTab: true },
+  { id: 'electric-guitar', name: 'Electric Guitar', shortName: 'E.Gtr.', timbre: 'guitar', program: 27, staves: ['treble'] },
+  { id: 'bass-guitar', name: 'Bass Guitar', shortName: 'Bass', timbre: 'strings', program: 33, staves: ['bass'], showTab: true },
+  { id: 'brass', name: 'Brass Section', shortName: 'Brass', timbre: 'brass', program: 61, staves: ['treble'] },
+  { id: 'drumkit', name: 'Drum Kit', shortName: 'Dr.', timbre: 'percussion', program: 0, staves: ['percussion'], drumKit: true },
+  { id: 'voice', name: 'Choir Aahs', shortName: 'Ch.', timbre: 'voice', program: 52, staves: ['treble'] },
 ];
 
 export function createGuitarArpeggioEtude(): ScoreDocument {

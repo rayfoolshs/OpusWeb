@@ -120,7 +120,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
   onTogglePageView,
 }) => {
   return (
-    <div className="no-print h-11 bg-[#1C2027] border-b border-white/8 px-3 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
+    <div className="no-print h-11 bg-[var(--bg-ribbon)] border-b border-[var(--border)] px-3 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Note Input Mode Toggle */}
         <button
@@ -130,14 +130,14 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           className={`h-8 px-3 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
             toolState.noteInputMode
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white/6 text-slate-300 hover:bg-white/10 hover:text-white'
+              : 'bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
           }`}
         >
           <span className="font-mono-tabular text-[11px] opacity-80">N</span>
           <span>Note Input</span>
         </button>
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 bg-[var(--surface-hover)] mx-1" />
 
         {/* Undo / Redo */}
         <button
@@ -145,7 +145,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           onClick={onUndo}
           disabled={!canUndo}
           title="Undo (Ctrl/Cmd+Z)"
-          className="h-8 w-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
         >
           <Undo2 className="w-4 h-4" />
         </button>
@@ -154,15 +154,15 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           onClick={onRedo}
           disabled={!canRedo}
           title="Redo (Ctrl/Cmd+Shift+Z)"
-          className="h-8 w-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
         >
           <Redo2 className="w-4 h-4" />
         </button>
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 bg-[var(--surface-hover)] mx-1" />
 
         {/* Note Durations */}
-        <div className="flex items-center gap-0.5 bg-[#14171C] p-0.5 rounded-md border border-white/6">
+        <div className="flex items-center gap-0.5 bg-[var(--bg-app)] p-0.5 rounded-md border border-[var(--border-soft)]">
           {DURATION_ITEMS.map((item) => {
             const active = toolState.duration === item.id;
             return (
@@ -174,7 +174,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
                 className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${
                   active
                     ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                    : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
                 }`}
               >
                 <NoteGlyph duration={item.id} />
@@ -191,7 +191,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           className={`h-8 w-8 rounded-md flex items-center justify-center text-base font-bold transition-colors ${
             toolState.dots > 0
               ? 'bg-blue-600 text-white'
-              : 'text-slate-300 hover:bg-white/8 hover:text-white'
+              : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
           }`}
         >
           •
@@ -204,7 +204,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
             toolState.isRestMode
               ? 'bg-blue-600 text-white'
-              : 'text-slate-300 hover:bg-white/8 hover:text-white'
+              : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
           }`}
         >
           Rest
@@ -217,7 +217,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
             toolState.tieActive
               ? 'bg-blue-600 text-white'
-              : 'text-slate-300 hover:bg-white/8 hover:text-white'
+              : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
           }`}
         >
           Tie
@@ -230,16 +230,16 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
             toolState.chordMode
               ? 'bg-blue-600 text-white'
-              : 'text-slate-300 hover:bg-white/8 hover:text-white'
+              : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
           }`}
         >
           Chord
         </button>
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 bg-[var(--surface-hover)] mx-1" />
 
         {/* Accidentals */}
-        <div className="flex items-center gap-0.5 bg-[#14171C] p-0.5 rounded-md border border-white/6">
+        <div className="flex items-center gap-0.5 bg-[var(--bg-app)] p-0.5 rounded-md border border-[var(--border-soft)]">
           {(
             [
               { id: 'sharp', sym: '♯', label: 'Sharp' },
@@ -257,7 +257,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
                 className={`h-7 w-7 rounded text-sm font-semibold flex items-center justify-center transition-colors ${
                   active
                     ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                    : 'text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]'
                 }`}
               >
                 {acc.sym}
@@ -266,10 +266,10 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           })}
         </div>
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 bg-[var(--surface-hover)] mx-1" />
 
         {/* Voice Switcher */}
-        <div className="flex items-center gap-0.5 bg-[#14171C] p-0.5 rounded-md border border-white/6">
+        <div className="flex items-center gap-0.5 bg-[var(--bg-app)] p-0.5 rounded-md border border-[var(--border-soft)]">
           {([0, 1] as const).map((v) => (
             <button
               key={v}
@@ -279,7 +279,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
               className={`h-7 px-2 rounded text-xs font-mono-tabular font-medium transition-colors whitespace-nowrap ${
                 toolState.voiceIndex === v
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]'
               }`}
             >
               V{v + 1}
@@ -287,14 +287,14 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           ))}
         </div>
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 bg-[var(--surface-hover)] mx-1" />
 
         {/* Measure Add / Remove */}
         <button
           type="button"
           onClick={onAddMeasure}
           title="Append Measure"
-          className="h-8 px-2.5 rounded-md text-xs font-medium text-slate-300 hover:bg-white/8 hover:text-white flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
+          className="h-8 px-2.5 rounded-md text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Bar</span>
@@ -303,7 +303,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           type="button"
           onClick={onDeleteMeasure}
           title="Delete Selected Measure"
-          className="h-8 w-8 rounded-md text-slate-400 hover:bg-white/8 hover:text-rose-400 flex items-center justify-center transition-colors"
+          className="h-8 w-8 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-rose-400 flex items-center justify-center transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -315,18 +315,18 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
           type="button"
           onClick={onTogglePageView}
           title={pageView ? 'Switch to Continuous View' : 'Switch to Page View'}
-          className="h-8 px-2.5 rounded-md text-xs font-medium text-slate-300 hover:bg-white/8 hover:text-white flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+          className="h-8 px-2.5 rounded-md text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
         >
           {pageView ? <FileText className="w-3.5 h-3.5" /> : <ScrollText className="w-3.5 h-3.5" />}
           <span>{pageView ? 'Page' : 'Continuous'}</span>
         </button>
 
-        <div className="flex items-center gap-0.5 bg-[#14171C] px-1 py-0.5 rounded-md border border-white/6">
+        <div className="flex items-center gap-0.5 bg-[var(--bg-app)] px-1 py-0.5 rounded-md border border-[var(--border-soft)]">
           <button
             type="button"
             onClick={() => onZoomChange(Math.max(0.55, Number((zoom - 0.1).toFixed(2))))}
             title="Zoom Out"
-            className="h-7 w-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white"
+            className="h-7 w-7 rounded flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
@@ -334,7 +334,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
             type="button"
             onClick={() => onZoomChange(1)}
             title="Reset Zoom to 100%"
-            className="h-7 px-1.5 rounded text-xs font-mono-tabular text-slate-300 hover:text-white whitespace-nowrap"
+            className="h-7 px-1.5 rounded text-xs font-mono-tabular text-[var(--text)] hover:text-[var(--text-strong)] whitespace-nowrap"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -342,7 +342,7 @@ export const ToolbarRibbon: React.FC<ToolbarRibbonProps> = ({
             type="button"
             onClick={() => onZoomChange(Math.min(1.8, Number((zoom + 0.1).toFixed(2))))}
             title="Zoom In"
-            className="h-7 w-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white"
+            className="h-7 w-7 rounded flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>

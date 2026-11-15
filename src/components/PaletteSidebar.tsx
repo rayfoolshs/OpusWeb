@@ -23,6 +23,7 @@ const CLEFS: { id: ClefType; label: string; glyph: string }[] = [
   { id: 'bass', label: 'Bass (F)', glyph: '𝄢' },
   { id: 'alto', label: 'Alto (C)', glyph: '𝄡' },
   { id: 'tenor', label: 'Tenor (C4)', glyph: '𝄡₄' },
+  { id: 'percussion', label: 'Percussion', glyph: '𝄥' },
 ];
 
 const TIME_SIGNATURES: { beats: number; beatType: number; label: string }[] = [
@@ -86,10 +87,10 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <aside className="no-print w-[236px] shrink-0 bg-[#181B21] border-r border-white/8 flex flex-col overflow-y-auto select-none">
-      <div className="px-4 py-3 border-b border-white/6">
-        <h2 className="text-xs font-semibold text-slate-200 tracking-wide">Palettes</h2>
-        <p className="text-[11px] text-slate-400 mt-0.5">
+    <aside className="no-print w-[236px] shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border)] flex flex-col overflow-y-auto select-none">
+      <div className="px-4 py-3 border-b border-[var(--border-soft)]">
+        <h2 className="text-xs font-semibold text-[var(--text-strong)] tracking-wide">Palettes</h2>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
           Click any symbol to apply to selection
         </p>
       </div>
@@ -102,10 +103,10 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={c.id}
               type="button"
               onClick={() => onApplyClef(c.id)}
-              className="h-9 px-2.5 rounded-md bg-[#20242C] hover:bg-[#2A303B] border border-white/6 text-left flex items-center gap-2 transition-colors"
+              className="h-9 px-2.5 rounded-md bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left flex items-center gap-2 transition-colors"
             >
-              <span className="text-base leading-none text-slate-100">{c.glyph}</span>
-              <span className="text-[11px] text-slate-300 truncate">{c.label}</span>
+              <span className="text-base leading-none text-[var(--text-strong)]">{c.glyph}</span>
+              <span className="text-[11px] text-[var(--text)] truncate">{c.label}</span>
             </button>
           ))}
         </div>
@@ -123,7 +124,7 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={ts.label}
               type="button"
               onClick={() => onApplyTimeSignature(ts.beats, ts.beatType)}
-              className="h-8 rounded-md bg-[#20242C] hover:bg-[#2A303B] border border-white/6 text-xs font-mono-tabular font-semibold text-slate-200 transition-colors"
+              className="h-8 rounded-md bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-xs font-mono-tabular font-semibold text-[var(--text-strong)] transition-colors"
             >
               {ts.label}
             </button>
@@ -143,7 +144,7 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={ks.fifths}
               type="button"
               onClick={() => onApplyKeySignature(ks.fifths)}
-              className="h-7 px-2.5 rounded bg-[#20242C] hover:bg-[#2A303B] border border-white/5 text-left text-[11px] text-slate-200 truncate transition-colors"
+              className="h-7 px-2.5 rounded bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left text-[11px] text-[var(--text-strong)] truncate transition-colors"
             >
               {ks.label}
             </button>
@@ -163,7 +164,7 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={dyn}
               type="button"
               onClick={() => onApplyDynamic(dyn)}
-              className="h-8 rounded-md bg-[#20242C] hover:bg-[#2A303B] border border-white/6 font-serif-score italic font-bold text-sm text-slate-100 transition-colors"
+              className="h-8 rounded-md bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] font-serif-score italic font-bold text-sm text-[var(--text-strong)] transition-colors"
             >
               {dyn}
             </button>
@@ -183,7 +184,7 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={art.id}
               type="button"
               onClick={() => onApplyArticulation(art.id)}
-              className="h-8 px-2 rounded-md bg-[#20242C] hover:bg-[#2A303B] border border-white/6 flex items-center gap-1.5 text-slate-200 transition-colors"
+              className="h-8 px-2 rounded-md bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] flex items-center gap-1.5 text-[var(--text-strong)] transition-colors"
             >
               <span className="w-4 text-center font-bold text-sm">{art.symbol}</span>
               <span className="text-[11px] truncate">{art.label}</span>
@@ -204,7 +205,7 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={b.id}
               type="button"
               onClick={() => onApplyBarline(b.id)}
-              className="h-7 px-2.5 rounded bg-[#20242C] hover:bg-[#2A303B] border border-white/5 text-left text-[11px] text-slate-200 transition-colors"
+              className="h-7 px-2.5 rounded bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left text-[11px] text-[var(--text-strong)] transition-colors"
             >
               {b.label}
             </button>
@@ -220,10 +221,10 @@ export const PaletteSidebar: React.FC<PaletteSidebarProps> = ({
               key={t.label}
               type="button"
               onClick={() => onApplyTempo(t.bpm)}
-              className="h-8 px-2 rounded-md bg-[#20242C] hover:bg-[#2A303B] border border-white/6 flex items-center justify-between text-[11px] text-slate-200 transition-colors"
+              className="h-8 px-2 rounded-md bg-[var(--bg-button)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] flex items-center justify-between text-[11px] text-[var(--text-strong)] transition-colors"
             >
               <span>{t.label}</span>
-              <span className="font-mono-tabular text-slate-400">{t.bpm}</span>
+              <span className="font-mono-tabular text-[var(--text-muted)]">{t.bpm}</span>
             </button>
           ))}
         </div>
@@ -244,17 +245,17 @@ function PaletteSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-white/6">
+    <div className="border-b border-[var(--border-soft)]">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-medium text-slate-200 hover:bg-white/4 transition-colors"
+        className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-medium text-[var(--text-strong)] hover:bg-[var(--surface-soft)] transition-colors"
       >
         <span>{title}</span>
         {isOpen ? (
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
         )}
       </button>
       {isOpen && <div className="px-3 pb-3 pt-0.5">{children}</div>}

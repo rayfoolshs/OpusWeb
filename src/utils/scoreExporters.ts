@@ -33,6 +33,7 @@ function clefToMscx(clef: string): string {
   if (clef === 'bass') return 'F';
   if (clef === 'alto') return 'C3';
   if (clef === 'tenor') return 'C4';
+  if (clef === 'percussion') return 'PERCUSSION';
   return 'G';
 }
 

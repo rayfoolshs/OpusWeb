@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { ScoreDocument } from '../types/score';
+import { SOUNDFONT_ATTRIBUTION } from '../audio/gmSoundfont';
 import { KEY_SIGNATURE_LIST } from '../utils/musicTheory';
 import { NewScoreOptions, STARTER_SCORES } from '../utils/starterScores';
 
@@ -89,18 +90,18 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
 
   return (
     <div className="no-print fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-xl rounded-xl bg-[#181B21] border border-white/10 shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+      <div className="w-full max-w-xl rounded-xl bg-[var(--bg-panel)] border border-[var(--border)] shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-white">Open or Import Score</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h2 className="text-base font-semibold text-[var(--text-strong)]">Open or Import Score</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               Single-user workspace · Local files, public web links, or starter scores
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:bg-white/8 hover:text-white"
+            className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -108,7 +109,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
 
         {/* Source Tabs */}
         <div className="px-5 pt-3">
-          <div className="grid grid-cols-3 gap-1 p-1 bg-[#111318] rounded-lg border border-white/6">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-[var(--bg-sunken)] rounded-lg border border-[var(--border-soft)]">
             <button
               type="button"
               onClick={() => {
@@ -116,7 +117,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                 setError(null);
               }}
               className={`h-8 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                tab === 'local' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'
+                tab === 'local' ? 'bg-blue-600 text-white' : 'text-[var(--text)] hover:text-[var(--text-strong)]'
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
@@ -129,7 +130,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                 setError(null);
               }}
               className={`h-8 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                tab === 'url' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'
+                tab === 'url' ? 'bg-blue-600 text-white' : 'text-[var(--text)] hover:text-[var(--text-strong)]'
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
@@ -142,7 +143,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                 setError(null);
               }}
               className={`h-8 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                tab === 'library' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'
+                tab === 'library' ? 'bg-blue-600 text-white' : 'text-[var(--text)] hover:text-[var(--text-strong)]'
               }`}
             >
               <FolderOpen className="w-3.5 h-3.5" />
@@ -171,23 +172,23 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-10 px-4 rounded-xl border-2 border-dashed border-white/15 hover:border-blue-500/60 bg-[#13161B] hover:bg-[#171B22] transition-colors flex flex-col items-center justify-center gap-2.5 text-center"
+                className="w-full py-10 px-4 rounded-xl border-2 border-dashed border-[var(--border-strong)] hover:border-blue-500/60 bg-[var(--bg-sunken)] hover:bg-[var(--bg-sunken-hover)] transition-colors flex flex-col items-center justify-center gap-2.5 text-center"
               >
                 {loading ? (
-                  <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-[var(--accent-text)] animate-spin" />
                 ) : (
-                  <FileMusic className="w-8 h-8 text-blue-400" />
+                  <FileMusic className="w-8 h-8 text-[var(--accent-text)]" />
                 )}
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-[var(--text-strong)]">
                     {loading ? 'Parsing score file...' : 'Choose a score file from your computer'}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     Supports MuseScore (.mscz, .mscx), MusicXML (.musicxml, .mxl, .xml), MIDI (.mid), and OpusWeb (.json)
                   </p>
                 </div>
               </button>
-              <p className="text-[11px] text-slate-400 text-center">
+              <p className="text-[11px] text-[var(--text-muted)] text-center">
                 Tip: You can also drag and drop any score file directly onto the sheet canvas.
               </p>
             </div>
@@ -196,7 +197,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
           {tab === 'url' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-200 block">
+                <label className="text-xs font-medium text-[var(--text-strong)] block">
                   Direct Web Link to Score File
                 </label>
                 <div className="flex gap-2">
@@ -208,7 +209,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') void handleFetchUrl();
                     }}
-                    className="flex-1 h-9 px-3 rounded-lg bg-[#121419] border border-white/12 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                    className="flex-1 h-9 px-3 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border-strong)] text-xs text-[var(--text-strong)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-blue-500"
                   />
                   <button
                     type="button"
@@ -220,13 +221,13 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                     <span>Load Link</span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-[var(--text-muted)]">
                   Accepts direct links to .mscz, .mscx, .musicxml, .mxl, .xml, or .mid files (GitHub links are automatically converted to raw files).
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-white/8 space-y-2">
-                <span className="text-[11px] font-medium text-slate-400 block">
+              <div className="pt-2 border-t border-[var(--border)] space-y-2">
+                <span className="text-[11px] font-medium text-[var(--text-muted)] block">
                   Try a Public Web Score
                 </span>
                 <div className="space-y-1.5">
@@ -239,10 +240,10 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                         setWebUrl(item.url);
                         void handleFetchUrl(item.url);
                       }}
-                      className="w-full px-3 py-2 rounded-lg bg-[#1F242D] hover:bg-[#272D38] border border-white/6 text-left flex items-center justify-between gap-2 transition-colors"
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--bg-card-2)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left flex items-center justify-between gap-2 transition-colors"
                     >
-                      <span className="text-xs text-slate-200 truncate">{item.label}</span>
-                      <span className="text-[11px] text-blue-400 shrink-0">Load</span>
+                      <span className="text-xs text-[var(--text-strong)] truncate">{item.label}</span>
+                      <span className="text-[11px] text-[var(--accent-text)] shrink-0">Load</span>
                     </button>
                   ))}
                 </div>
@@ -254,7 +255,7 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
             <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
               {recentScores.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[11px] font-medium text-slate-400 block">
+                  <span className="text-[11px] font-medium text-[var(--text-muted)] block">
                     Saved in This Browser
                   </span>
                   {recentScores.map((rs) => (
@@ -265,23 +266,23 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                         onLoadRecent(rs.id);
                         onClose();
                       }}
-                      className="w-full px-3 py-2.5 rounded-lg bg-[#1F242D] hover:bg-[#272D38] border border-white/6 text-left flex items-center justify-between gap-3 transition-colors"
+                      className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-card-2)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left flex items-center justify-between gap-3 transition-colors"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-white truncate">{rs.title}</p>
-                        <p className="text-[11px] text-slate-400 truncate">
+                        <p className="text-xs font-medium text-[var(--text-strong)] truncate">{rs.title}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate">
                           {rs.sourceLabel || 'Local Browser'} ·{' '}
                           {new Date(rs.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className="text-xs text-blue-400 shrink-0">Open</span>
+                      <span className="text-xs text-[var(--accent-text)] shrink-0">Open</span>
                     </button>
                   ))}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <span className="text-[11px] font-medium text-slate-400 block">
+                <span className="text-[11px] font-medium text-[var(--text-muted)] block">
                   Starter Scores &amp; Templates
                 </span>
                 {STARTER_SCORES.map((st) => (
@@ -292,13 +293,13 @@ export const OpenScoreModal: React.FC<OpenScoreModalProps> = ({
                       onLoadStarter(st.id);
                       onClose();
                     }}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1F242D] hover:bg-[#272D38] border border-white/6 text-left flex items-center justify-between gap-3 transition-colors"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-card-2)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left flex items-center justify-between gap-3 transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-white truncate">{st.title}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{st.subtitle}</p>
+                      <p className="text-xs font-medium text-[var(--text-strong)] truncate">{st.title}</p>
+                      <p className="text-[11px] text-[var(--text-muted)] truncate">{st.subtitle}</p>
                     </div>
-                    <span className="text-xs text-blue-400 shrink-0">Open</span>
+                    <span className="text-xs text-[var(--accent-text)] shrink-0">Open</span>
                   </button>
                 ))}
               </div>
@@ -372,16 +373,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   return (
     <div className="no-print fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-lg rounded-xl bg-[#181B21] border border-white/10 shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+      <div className="w-full max-w-lg rounded-xl bg-[var(--bg-panel)] border border-[var(--border)] shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-white">Export Score</h2>
-            <p className="text-xs text-slate-400 mt-0.5 truncate">{score.title}</p>
+            <h2 className="text-base font-semibold text-[var(--text-strong)]">Export Score</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{score.title}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:bg-white/8 hover:text-white"
+            className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -395,13 +396,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 onExport(fmt.id);
                 onClose();
               }}
-              className="w-full px-3.5 py-3 rounded-lg bg-[#1E222A] hover:bg-[#272C36] border border-white/6 text-left flex items-center justify-between gap-3 transition-colors"
+              className="w-full px-3.5 py-3 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-button-hover)] border border-[var(--border-soft)] text-left flex items-center justify-between gap-3 transition-colors"
             >
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-white">{fmt.title}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{fmt.desc}</p>
+                <p className="text-xs font-semibold text-[var(--text-strong)]">{fmt.title}</p>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{fmt.desc}</p>
               </div>
-              <span className="font-mono-tabular text-xs font-semibold text-blue-400 flex items-center gap-1.5 shrink-0">
+              <span className="font-mono-tabular text-xs font-semibold text-[var(--accent-text)] flex items-center gap-1.5 shrink-0">
                 {fmt.id === 'print' ? (
                   <Printer className="w-3.5 h-3.5" />
                 ) : (
@@ -459,14 +460,14 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
     <div className="no-print fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg rounded-xl bg-[#181B21] border border-white/10 shadow-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-xl bg-[var(--bg-panel)] border border-[var(--border)] shadow-2xl overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">Create New Score</h2>
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+          <h2 className="text-base font-semibold text-[var(--text-strong)]">Create New Score</h2>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:bg-white/8 hover:text-white"
+            className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -475,35 +476,39 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Score Title</label>
+              <label className="text-[11px] text-[var(--text-muted)] block mb-1">Score Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg bg-[#121419] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-3 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border)] text-xs text-[var(--text-strong)] focus:outline-none focus:border-blue-500"
               />
             </div>
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Composer</label>
+              <label className="text-[11px] text-[var(--text-muted)] block mb-1">Composer</label>
               <input
                 type="text"
                 value={composer}
                 onChange={(e) => setComposer(e.target.value)}
                 placeholder="Optional"
-                className="w-full h-9 px-3 rounded-lg bg-[#121419] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-3 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border)] text-xs text-[var(--text-strong)] focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] text-slate-400 block mb-1.5">Instrumentation</label>
+            <label className="text-[11px] text-[var(--text-muted)] block mb-1.5">
+              Instrumentation
+            </label>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
                   { id: 'piano', label: 'Piano Grand Staff' },
-                  { id: 'treble', label: 'Treble Solo' },
-                  { id: 'bass', label: 'Bass / Cello' },
-                  { id: 'guitar', label: 'Guitar + TAB' },
+                  { id: 'guitar', label: 'Acoustic Guitar + TAB' },
+                  { id: 'violin', label: 'Solo Violin' },
+                  { id: 'cello', label: 'Solo Cello' },
+                  { id: 'flute', label: 'Solo Flute' },
+                  { id: 'trumpet', label: 'Solo Trumpet' },
                   { id: 'quartet', label: 'String Quartet' },
                   { id: 'choir', label: 'SATB Choir' },
                 ] as const
@@ -514,23 +519,26 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
                   onClick={() => setTemplate(tpl.id)}
                   className={`h-9 px-2.5 rounded-lg border text-xs font-medium transition-colors truncate ${
                     template === tpl.id
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                      : 'bg-[#121419] border-white/10 text-slate-300 hover:border-white/25'
+                      ? 'bg-blue-600/20 border-blue-500 text-[var(--accent-text-strong)]'
+                      : 'bg-[var(--bg-sunken)] border-[var(--border)] text-[var(--text)] hover:border-[var(--border-strong)]'
                   }`}
                 >
                   {tpl.label}
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-[var(--text-faint)] mt-1.5">
+              Sampled playback: {SOUNDFONT_ATTRIBUTION}
+            </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Key Signature</label>
+              <label className="text-[11px] text-[var(--text-muted)] block mb-1">Key Signature</label>
               <select
                 value={keyFifths}
                 onChange={(e) => setKeyFifths(Number(e.target.value))}
-                className="w-full h-9 px-2.5 rounded-lg bg-[#121419] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-2.5 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border)] text-xs text-[var(--text-strong)] focus:outline-none focus:border-blue-500"
               >
                 {KEY_SIGNATURE_LIST.map((k) => (
                   <option key={k.fifths} value={k.fifths}>
@@ -540,7 +548,7 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Time Signature</label>
+              <label className="text-[11px] text-[var(--text-muted)] block mb-1">Time Signature</label>
               <select
                 value={`${beats}/${beatType}`}
                 onChange={(e) => {
@@ -548,7 +556,7 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
                   setBeats(b);
                   setBeatType(bt);
                 }}
-                className="w-full h-9 px-2.5 rounded-lg bg-[#121419] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-2.5 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border)] text-xs text-[var(--text-strong)] focus:outline-none focus:border-blue-500"
               >
                 {['4/4', '3/4', '2/4', '6/8', '3/8', '2/2', '5/4'].map((ts) => (
                   <option key={ts} value={ts}>
@@ -558,20 +566,20 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Tempo (BPM)</label>
+              <label className="text-[11px] text-[var(--text-muted)] block mb-1">Tempo (BPM)</label>
               <input
                 type="number"
                 min={30}
                 max={260}
                 value={tempo}
                 onChange={(e) => setTempo(Math.max(30, Math.min(260, Number(e.target.value) || 120)))}
-                className="w-full h-9 px-2.5 rounded-lg bg-[#121419] border border-white/10 text-xs font-mono-tabular text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-2.5 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border)] text-xs font-mono-tabular text-[var(--text-strong)] focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] text-slate-400 block mb-1">
+            <label className="text-[11px] text-[var(--text-muted)] block mb-1">
               Initial Measures ({measureCount})
             </label>
             <input
@@ -586,11 +594,11 @@ export const NewScoreModal: React.FC<NewScoreModalProps> = ({
           </div>
         </div>
 
-        <div className="px-5 py-3.5 border-t border-white/8 flex items-center justify-end gap-2 bg-[#14171C]">
+        <div className="px-5 py-3.5 border-t border-[var(--border)] flex items-center justify-end gap-2 bg-[var(--bg-app)]">
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-4 rounded-lg text-xs font-medium text-slate-300 hover:bg-white/8"
+            className="h-9 px-4 rounded-lg text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-hover)]"
           >
             Cancel
           </button>
@@ -629,25 +637,25 @@ export const ShortcutsModal: React.FC<{ isOpen: boolean; onClose: () => void }> 
 
   return (
     <div className="no-print fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-xl bg-[#181B21] border border-white/10 shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+      <div className="w-full max-w-md rounded-xl bg-[var(--bg-panel)] border border-[var(--border)] shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Keyboard className="w-4 h-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-white">Keyboard Shortcuts</h2>
+            <Keyboard className="w-4 h-4 text-[var(--accent-text)]" />
+            <h2 className="text-sm font-semibold text-[var(--text-strong)]">Keyboard Shortcuts</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:bg-white/8 hover:text-white"
+            className="h-8 w-8 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-4 divide-y divide-white/6">
+        <div className="p-4 divide-y divide-[var(--border-soft)]">
           {rows.map(([key, desc]) => (
             <div key={key} className="py-2 flex items-center justify-between gap-4 text-xs">
-              <span className="text-slate-300">{desc}</span>
-              <kbd className="px-2 py-0.5 rounded bg-[#111318] border border-white/12 font-mono-tabular text-[11px] text-blue-300 whitespace-nowrap shrink-0">
+              <span className="text-[var(--text)]">{desc}</span>
+              <kbd className="px-2 py-0.5 rounded bg-[var(--bg-sunken)] border border-[var(--border-strong)] font-mono-tabular text-[11px] text-[var(--accent-text-strong)] whitespace-nowrap shrink-0">
                 {key}
               </kbd>
             </div>

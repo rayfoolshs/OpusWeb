@@ -1,10 +1,14 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
+  // GitHub Pages project sites are served from /<repo>/; local dev stays at /
+  const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
   return {
+    base: isGitHubPages ? '/OpusWeb/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

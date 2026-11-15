@@ -4,7 +4,7 @@ export type AccidentalType = 'sharp' | 'flat' | 'natural' | 'double-sharp' | 'do
 
 export type DurationType = 'whole' | 'half' | 'quarter' | 'eighth' | '16th' | '32nd';
 
-export type ClefType = 'treble' | 'bass' | 'alto' | 'tenor';
+export type ClefType = 'treble' | 'bass' | 'alto' | 'tenor' | 'percussion';
 
 export type ArticulationType = 'staccato' | 'accent' | 'tenuto' | 'marcato' | 'fermata';
 
@@ -18,7 +18,8 @@ export type InstrumentTimbre =
   | 'woodwind'
   | 'brass'
   | 'guitar'
-  | 'voice';
+  | 'voice'
+  | 'percussion';
 
 export interface Pitch {
   step: NoteStep;
@@ -62,11 +63,21 @@ export interface MeasureAttributes {
   barlineRight?: BarlineType;
 }
 
+export interface ChordSymbol {
+  id: string;
+  /** Quarter-note beats from the start of the measure */
+  beat: number;
+  /** Chord lead-sheet symbol, e.g. "Cmaj7", "Am", "G7/B" */
+  symbol: string;
+}
+
 export interface Measure {
   id: string;
   attributes: MeasureAttributes;
   // Voices per staff (usually voice 0 = primary, voice 1 = secondary)
   voices: VoiceEvent[][];
+  /** Lead-sheet chord symbols shown above the staff and played back as block chords */
+  chordSymbols?: ChordSymbol[];
 }
 
 export interface Staff {
@@ -80,10 +91,12 @@ export interface Part {
   name: string;
   shortName: string;
   timbre: InstrumentTimbre;
+  program?: number; // General MIDI program (0-127); drives the sampled playback sound
   volume: number; // 0..1
   muted: boolean;
   solo: boolean;
   showTab?: boolean; // Render linked 6-string Guitar Tablature staff below notation
+  drumKit?: boolean; // Play written staff positions through the drum-kit engine
   staves: Staff[]; // 1 for solo instruments, 2 for Piano/Grand Staff
 }
 
@@ -106,6 +119,8 @@ export interface SelectionTarget {
   voiceIndex: number;
   eventId: string | null;
   noteIndex?: number;
+  /** Which linked staff the selection came from, so TAB number typing can target frets. */
+  source?: 'notation' | 'tab';
 }
 
 export interface EditorToolState {

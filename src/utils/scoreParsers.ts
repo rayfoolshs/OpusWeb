@@ -65,6 +65,7 @@ function mapClefType(sign: string | null | undefined, line?: number, mscxClef?: 
     if (c.startsWith('F')) return 'bass';
     if (c === 'C3') return 'alto';
     if (c === 'C4') return 'tenor';
+    if (c.includes('PERCUSSION')) return 'percussion';
     return 'treble';
   }
   const s = (sign || 'G').toUpperCase();
@@ -73,6 +74,7 @@ function mapClefType(sign: string | null | undefined, line?: number, mscxClef?: 
     if (line === 4) return 'tenor';
     return 'alto';
   }
+  if (s === 'PERCUSSION') return 'percussion';
   return 'treble';
 }
 

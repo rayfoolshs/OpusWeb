@@ -6,15 +6,28 @@ import {
   pitchToMidi,
   writtenGuitarPitchToSoundingMidi,
 } from '../utils/musicTheory';
+import {
+  getLoadedSoundfont,
+  partProgram,
+  preloadSoundfonts,
+  soundfontNameForProgram,
+} from './gmSoundfont';
+import { DrumVoiceId, drumVoiceForPitch, triggerDrum } from './drumKit';
+import { chordMidiNotes, sortedChords } from '../utils/chords';
 
 interface ScheduledNote {
   startBeatGlobal: number;
   durationBeats: number;
   midi: number;
   timbre: InstrumentTimbre;
+  program: number;
+  drum?: DrumVoiceId;
   gain: number;
   tempo: number;
 }
+
+/** Applies the part dynamic/volume to the sampled player's per-note gain. */
+const SAMPLE_GAIN_TRIM = 0.55;
 
 const DYNAMIC_GAIN: Record<DynamicType, number> = {
   ppp: 0.16,
@@ -30,6 +43,33 @@ const DYNAMIC_GAIN: Record<DynamicType, number> = {
 
 function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+/**
+ * Expand the written measures into playback order, repeating each section
+ * delimited by repeat barlines once (|: … :|).
+ */
+function buildRepeatPlayOrder(
+  measures: { attributes: { barlineLeft?: string; barlineRight?: string } }[]
+): number[] {
+  const order: number[] = [];
+  let repeatStart = 0;
+
+  for (let m = 0; m < measures.length; m++) {
+    order.push(m);
+    const attrs = measures[m].attributes;
+    if (attrs.barlineLeft === 'repeat-begin') {
+      repeatStart = m;
+    }
+    if (attrs.barlineRight === 'repeat-end') {
+      for (let r = repeatStart; r <= m; r++) {
+        order.push(r);
+      }
+      repeatStart = m + 1;
+    }
+  }
+
+  return order;
 }
 
 class ScoreSynthEngine {
@@ -53,6 +93,9 @@ class ScoreSynthEngine {
 
   private onTickCallback: ((measureIndex: number, beatInMeasure: number, playing: boolean) => void) | null = null;
 
+  private pendingPrograms: number[] = [];
+  private warmUpAttached = false;
+
   private ensureContext(): AudioContext {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -70,10 +113,56 @@ class ScoreSynthEngine {
     if (opts.tempoScale !== undefined) this.tempoMultiplier = Math.max(0.25, Math.min(2.5, opts.tempoScale));
   }
 
-  public auditionPitch(pitch: Pitch, timbre: InstrumentTimbre = 'piano', durationSec = 0.45) {
+  public auditionPitch(
+    pitch: Pitch,
+    timbre: InstrumentTimbre = 'piano',
+    durationSec = 0.45,
+    program?: number,
+    drumKit?: boolean
+  ) {
     const ctx = this.ensureContext();
+    if (drumKit) {
+      triggerDrum(ctx, drumVoiceForPitch(pitch), ctx.currentTime, 0.8, ctx.destination);
+      return;
+    }
+    const resolvedProgram = program ?? partProgram({ timbre });
+    this.preloadPrograms([resolvedProgram]);
     const midi = timbre === 'guitar' ? writtenGuitarPitchToSoundingMidi(pitch) : pitchToMidi(pitch);
-    this.triggerVoice(ctx, midi, ctx.currentTime, durationSec, timbre, 0.55);
+    this.triggerVoice(ctx, midi, ctx.currentTime, durationSec, timbre, 0.55, resolvedProgram);
+  }
+
+  /**
+   * Start loading sampled instruments for a score. Safe to call repeatedly;
+   * the AudioContext is only created inside the first user gesture.
+   */
+  public preloadScore(score: ScoreDocument) {
+    this.pendingPrograms = score.parts
+      .filter((part) => !part.muted && !part.drumKit)
+      .map(partProgram);
+    if (this.ctx) {
+      this.preloadPrograms(this.pendingPrograms);
+      return;
+    }
+    this.attachWarmUp();
+  }
+
+  private preloadPrograms(programs: number[]) {
+    if (!this.ctx) return;
+    preloadSoundfonts(this.ctx, programs);
+  }
+
+  private attachWarmUp() {
+    if (this.warmUpAttached) return;
+    this.warmUpAttached = true;
+    const handler = () => {
+      this.warmUpAttached = false;
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('keydown', handler);
+      this.ensureContext();
+      this.preloadPrograms(this.pendingPrograms);
+    };
+    window.addEventListener('pointerdown', handler, { passive: true });
+    window.addEventListener('keydown', handler);
   }
 
   private triggerMetronomeClick(ctx: AudioContext, time: number, accented: boolean) {
@@ -96,8 +185,30 @@ class ScoreSynthEngine {
     startTime: number,
     durationSec: number,
     timbre: InstrumentTimbre,
-    velocityGain: number
+    velocityGain: number,
+    program: number,
+    drum?: DrumVoiceId
   ) {
+    if (drum) {
+      triggerDrum(ctx, drum, Math.max(startTime, ctx.currentTime), velocityGain, ctx.destination);
+      return;
+    }
+
+    // Prefer the sampled GM soundfont; fall back to the built-in synth while
+    // samples load (or if the network is unavailable).
+    const sampler = getLoadedSoundfont(soundfontNameForProgram(program));
+    if (sampler) {
+      try {
+        sampler.play(midi, Math.max(startTime, ctx.currentTime), {
+          duration: Math.max(0.08, Math.min(6, durationSec)),
+          gain: Math.max(0.015, Math.min(1, velocityGain * SAMPLE_GAIN_TRIM)),
+        });
+        return;
+      } catch {
+        // Fall through to the oscillator voice.
+      }
+    }
+
     const freq = midiToFreq(midi);
     const dur = Math.max(0.08, Math.min(4.5, durationSec));
     const masterGain = ctx.createGain();
@@ -230,19 +341,29 @@ class ScoreSynthEngine {
     }
 
     const measureCount = leadPart.staves[0].measures.length;
-    let runningBeat = 0;
-
+    const measureContexts: { capacityBeats: number; tempo: number }[] = [];
     for (let m = 0; m < measureCount; m++) {
       const ctxInfo = getEffectiveMeasureContext(leadPart, 0, m, score.defaultTempo);
-      const cap = getMeasureCapacityBeats(ctxInfo.beats, ctxInfo.beatType);
-      this.measureStarts.push({
-        measureIndex: m,
-        startBeat: runningBeat,
-        capacityBeats: cap,
+      measureContexts.push({
+        capacityBeats: getMeasureCapacityBeats(ctxInfo.beats, ctxInfo.beatType),
         tempo: ctxInfo.tempo,
       });
-      runningBeat += cap;
     }
+
+    // Repeat barlines expand the measure sequence (each |: … :| plays twice)
+    const playOrder = buildRepeatPlayOrder(leadPart.staves[0].measures);
+    let runningBeat = 0;
+    playOrder.forEach((measureIndex) => {
+      const measureCtx = measureContexts[measureIndex];
+      if (!measureCtx) return;
+      this.measureStarts.push({
+        measureIndex,
+        startBeat: runningBeat,
+        capacityBeats: measureCtx.capacityBeats,
+        tempo: measureCtx.tempo,
+      });
+      runningBeat += measureCtx.capacityBeats;
+    });
     this.totalBeats = runningBeat;
 
     const anySolo = score.parts.some((p) => p.solo);
@@ -254,9 +375,9 @@ class ScoreSynthEngine {
       part.staves.forEach((staff) => {
         let currentDynamicGain = 0.65;
 
-        staff.measures.forEach((measure, mIdx) => {
-          const mInfo = this.measureStarts[mIdx];
-          if (!mInfo) return;
+        this.measureStarts.forEach((mInfo) => {
+          const measure = staff.measures[mInfo.measureIndex];
+          if (!measure) return;
 
           measure.voices.forEach((voice) => {
             let beatOffset = 0;
@@ -282,6 +403,8 @@ class ScoreSynthEngine {
                         ? writtenGuitarPitchToSoundingMidi(note.pitch)
                         : pitchToMidi(note.pitch),
                     timbre: part.timbre,
+                    program: partProgram(part),
+                    drum: part.drumKit ? drumVoiceForPitch(note.pitch) : undefined,
                     gain: currentDynamicGain * part.volume,
                     tempo: mInfo.tempo,
                   });
@@ -289,6 +412,39 @@ class ScoreSynthEngine {
               }
               beatOffset += evBeats;
             });
+          });
+        });
+      });
+    });
+
+    // Lead-sheet chord symbols play as block chords using the first pitched part
+    const chordSourcePart = score.parts.find((part) => !part.muted && !part.drumKit);
+    const chordTimbre: InstrumentTimbre = chordSourcePart?.timbre ?? 'piano';
+    const chordProgram = chordSourcePart ? partProgram(chordSourcePart) : 0;
+    const chordGain = 0.38 * (chordSourcePart?.volume ?? 0.85);
+
+    this.measureStarts.forEach((mInfo) => {
+      const measure = leadPart.staves[0]?.measures[mInfo.measureIndex];
+      const chords = sortedChords(measure?.chordSymbols);
+      if (chords.length === 0) return;
+
+      chords.forEach((chord, idx) => {
+        const startOffset = Math.max(0, Math.min(mInfo.capacityBeats, chord.beat));
+        const nextOffset =
+          idx + 1 < chords.length
+            ? Math.max(0, Math.min(mInfo.capacityBeats, chords[idx + 1].beat))
+            : mInfo.capacityBeats;
+        const durationBeats = Math.max(0.25, nextOffset - startOffset);
+
+        chordMidiNotes(chord.symbol).forEach((midi) => {
+          this.timeline.push({
+            startBeatGlobal: mInfo.startBeat + startOffset,
+            durationBeats: durationBeats * 0.96,
+            midi,
+            timbre: chordTimbre,
+            program: chordProgram,
+            gain: chordGain,
+            tempo: mInfo.tempo,
           });
         });
       });
@@ -304,11 +460,13 @@ class ScoreSynthEngine {
   ) {
     this.stop();
     const ctx = this.ensureContext();
+    this.preloadScore(score);
     this.buildTimeline(score);
     if (this.totalBeats <= 0) return;
 
     this.onTickCallback = onTick || null;
-    const startMeasure = this.measureStarts[Math.min(startMeasureIndex, this.measureStarts.length - 1)];
+    const startMeasure =
+      this.measureStarts.find((ms) => ms.measureIndex === startMeasureIndex) || this.measureStarts[0];
     const startBeat = startMeasure ? startMeasure.startBeat : 0;
 
     this.isPlaying = true;
@@ -345,7 +503,9 @@ class ScoreSynthEngine {
             Math.max(now, noteTime),
             note.durationBeats * secPerBeat,
             note.timbre,
-            note.gain
+            note.gain,
+            note.program,
+            note.drum
           );
         }
         this.nextNoteIndex++;

@@ -232,6 +232,7 @@ export function staffStepToPitch(
     bass: { stepIndex: 4, octave: 2 }, // G2
     alto: { stepIndex: 3, octave: 3 }, // F3
     tenor: { stepIndex: 1, octave: 3 }, // D3
+    percussion: { stepIndex: 2, octave: 4 }, // treble positions
   };
   const base = anchor[clef] || anchor.treble;
   const totalSteps = base.octave * 7 + base.stepIndex + diatonicStepsFromBottomLine;
@@ -252,6 +253,7 @@ export function pitchToDiatonicStepsFromBottomLine(clef: ClefType, pitch: Pitch)
     bass: { stepIndex: 4, octave: 2 }, // G2
     alto: { stepIndex: 3, octave: 3 }, // F3
     tenor: { stepIndex: 1, octave: 3 }, // D3
+    percussion: { stepIndex: 2, octave: 4 }, // treble positions
   };
   const base = anchor[clef] || anchor.treble;
   const pitchStepIndex = STEP_ORDER.indexOf(pitch.step);
@@ -483,29 +485,93 @@ export function createNoteHead(pitch: Pitch, tieStart = false, tieStop = false):
   };
 }
 
-// Standard 6-string Guitar tuning (sounding MIDI): String 1 (E4=64) to String 6 (E2=40)
-export const GUITAR_TUNING_MIDI: readonly number[] = [64, 59, 55, 50, 45, 40];
+export interface TabInstrumentConfig {
+  name: 'guitar' | 'bass';
+  strings: number;
+  /** Sounding MIDI pitch of each open string, index 0 = string 1 (highest) */
+  tuningMidi: readonly number[];
+  /** Written pitch = sounding pitch + writtenOffset (guitar is written an octave higher) */
+  writtenOffset: number;
+}
+
+// Standard 6-string guitar (EADGBE, sounding MIDI): string 1 E4=64 … string 6 E2=40
+export const GUITAR_TAB_CONFIG: TabInstrumentConfig = {
+  name: 'guitar',
+  strings: 6,
+  tuningMidi: [64, 59, 55, 50, 45, 40],
+  writtenOffset: 12,
+};
+
+// Standard 4-string bass (EADG, sounding MIDI): string 1 G2=43 … string 4 E1=28
+export const BASS_TAB_CONFIG: TabInstrumentConfig = {
+  name: 'bass',
+  strings: 4,
+  tuningMidi: [43, 38, 33, 28],
+  writtenOffset: 0,
+};
+
+export const GUITAR_TUNING_MIDI: readonly number[] = GUITAR_TAB_CONFIG.tuningMidi;
 
 /**
- * Compute sounding guitar MIDI from written treble_8vb guitar notation.
- * Standard guitar notation is written 1 octave above sounding pitch (E3 written -> E2 sounding).
+ * Which tablature layout a part uses, if any. Guitar-family timbres use the
+ * 6-string guitar layout; GM bass programs use the 4-string bass layout.
  */
-export function writtenGuitarPitchToSoundingMidi(pitch: Pitch): number {
+export function getTabConfig(part: Pick<Part, 'timbre' | 'program'>): TabInstrumentConfig | null {
+  if (part.timbre === 'guitar') return GUITAR_TAB_CONFIG;
+  if (typeof part.program === 'number' && part.program >= 32 && part.program <= 39) {
+    return BASS_TAB_CONFIG;
+  }
+  return null;
+}
+
+/** Only guitar/bass parts can render the linked tablature staff. */
+export function supportsGuitarTab(part: Pick<Part, 'timbre' | 'program'>): boolean {
+  return getTabConfig(part) !== null;
+}
+
+export function tabLabelForPart(part: Pick<Part, 'timbre' | 'program'>): string {
+  return getTabConfig(part)?.name === 'bass' ? 'Linked Bass TAB' : 'Linked Guitar TAB';
+}
+
+/**
+ * Compute sounding MIDI from written notation for a tab instrument.
+ * Guitar notation is written one octave above sounding pitch; bass is not.
+ */
+export function writtenPitchToTabSoundingMidi(pitch: Pitch, config: TabInstrumentConfig): number {
   const writtenMidi = pitchToMidi(pitch);
-  let sounding = writtenMidi >= 52 ? writtenMidi - 12 : writtenMidi;
-  while (sounding < 40) sounding += 12;
-  while (sounding > 88) sounding -= 12;
+  let sounding = writtenMidi - config.writtenOffset;
+  const lowest = Math.min(...config.tuningMidi);
+  const highest = Math.max(...config.tuningMidi) + 24;
+  while (sounding < lowest) sounding += 12;
+  while (sounding > highest) sounding -= 12;
   return sounding;
 }
 
 /**
- * Find all valid (string 1..6, fret 0..24) positions on standard EADGBE guitar for a Pitch.
+ * Convert a tablature position (string 1..N, fret 0..24) back to written notation.
  */
-export function getValidGuitarPositions(pitch: Pitch): { str: number; fret: number }[] {
-  const sounding = writtenGuitarPitchToSoundingMidi(pitch);
+export function tabPositionToWrittenPitch(
+  str: number,
+  fret: number,
+  config: TabInstrumentConfig,
+  keyFifths = 0
+): Pitch {
+  const tuningIndex = Math.max(0, Math.min(config.tuningMidi.length - 1, Math.round(str) - 1));
+  const openStringSounding = config.tuningMidi[tuningIndex];
+  const clampedFret = Math.max(0, Math.min(24, Math.round(fret)));
+  const soundingMidi = openStringSounding + clampedFret;
+  return midiToPitch(soundingMidi + config.writtenOffset, keyFifths);
+}
+
+/** Find all valid (string, fret) positions on the instrument for a written Pitch. */
+export function getValidTabPositions(
+  pitch: Pitch,
+  config: TabInstrumentConfig
+): { str: number; fret: number }[] {
+  const sounding = writtenPitchToTabSoundingMidi(pitch, config);
   const options: { str: number; fret: number }[] = [];
-  for (let i = 0; i < GUITAR_TUNING_MIDI.length; i++) {
-    const fret = sounding - GUITAR_TUNING_MIDI[i];
+  for (let i = 0; i < config.tuningMidi.length; i++) {
+    const fret = sounding - config.tuningMidi[i];
     if (fret >= 0 && fret <= 24) {
       options.push({ str: i + 1, fret });
     }
@@ -514,10 +580,11 @@ export function getValidGuitarPositions(pitch: Pitch): { str: number; fret: numb
 }
 
 /**
- * Assign optimal non-overlapping guitar string & fret positions for a chord or single note.
+ * Assign optimal non-overlapping string & fret positions for a chord or single note.
  */
-export function assignGuitarChordTabPositions(
-  notes: NoteHead[]
+export function assignTabPositions(
+  notes: NoteHead[],
+  config: TabInstrumentConfig
 ): { str: number; fret: number; noteId: string }[] {
   const usedStrings = new Set<number>();
   const result: { str: number; fret: number; noteId: string }[] = [];
@@ -528,7 +595,7 @@ export function assignGuitarChordTabPositions(
     if (
       nh.tabString !== undefined &&
       nh.tabString >= 1 &&
-      nh.tabString <= 6 &&
+      nh.tabString <= config.strings &&
       nh.tabFret !== undefined &&
       nh.tabFret >= 0 &&
       nh.tabFret <= 24
@@ -540,12 +607,12 @@ export function assignGuitarChordTabPositions(
     }
   });
 
-  // Sort remaining notes highest pitch first so upper notes prefer higher strings (1..6)
+  // Sort remaining notes highest pitch first so upper notes prefer higher strings
   const sorted = [...remaining].sort((a, b) => pitchToMidi(b.pitch) - pitchToMidi(a.pitch));
 
   sorted.forEach((nh) => {
-    const options = getValidGuitarPositions(nh.pitch);
-    // Prefer lowest fret in open/first position (<= 5) on an unused string
+    const options = getValidTabPositions(nh.pitch, config);
+    // Prefer lowest fret in open/first position on an unused string
     const unused = options.filter((o) => !usedStrings.has(o.str));
     const pool = unused.length > 0 ? unused : options;
 
@@ -567,5 +634,29 @@ export function assignGuitarChordTabPositions(
   });
 
   return result;
+}
+
+// Guitar-specific wrappers kept for callers that always mean the 6-string layout.
+
+export function writtenGuitarPitchToSoundingMidi(pitch: Pitch): number {
+  return writtenPitchToTabSoundingMidi(pitch, GUITAR_TAB_CONFIG);
+}
+
+export function guitarTabPositionToWrittenPitch(
+  str: number,
+  fret: number,
+  keyFifths = 0
+): Pitch {
+  return tabPositionToWrittenPitch(str, fret, GUITAR_TAB_CONFIG, keyFifths);
+}
+
+export function getValidGuitarPositions(pitch: Pitch): { str: number; fret: number }[] {
+  return getValidTabPositions(pitch, GUITAR_TAB_CONFIG);
+}
+
+export function assignGuitarChordTabPositions(
+  notes: NoteHead[]
+): { str: number; fret: number; noteId: string }[] {
+  return assignTabPositions(notes, GUITAR_TAB_CONFIG);
 }
 

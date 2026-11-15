@@ -1,24 +1,45 @@
 # OpusWeb
 
-OpusWeb is a single-user, browser-based music notation and score editor compatible with MuseScore (`.mscz`, `.mscx`), MusicXML (`.musicxml`, `.mxl`, `.xml`), and Standard MIDI (`.mid`, `.midi`) files.
+**Version 1.1.0 · by Ray Foo**
 
-It allows musicians, educators, and students to create, open, edit, play back, and export sheet music directly in the browser from local files or public web links—without requiring accounts, cloud-drive sign-ins, or real-time collaboration servers.
+OpusWeb is a single-user, browser-based music notation studio with sampled General MIDI playback, guitar/bass tablature, chord leadsheets, and MuseScore / MusicXML / MIDI import & export.
 
-## Features
+It lets musicians, educators, and students create, open, edit, play back, and export sheet music directly in the browser from local files or public web links — without accounts, cloud-drive sign-ins, or collaboration servers.
 
-- **Publication-Grade SVG Engraving**: Renders single-staff, Grand Staff (Piano), and multi-part ensemble scores (String Quartet, SATB Choir, custom instruments) using VexFlow SVG in **Page** (A4) or **Continuous** layout with zoom (`55%`–`180%`) and clean print/PDF output.
-- **Interactive Notation Editing**:
-  - **Note Input Mode (`N`)**: Hover over any staff to preview a snapped ghost notehead with ledger lines and pitch readout, then click to insert notes or rests.
-  - **Keyboard Entry**: Enter pitches by letter (`A`–`G`), switch durations (`1`–`6`), toggle dots (`.`), rests (`0`/`R`), ties (`T`), accidentals (`♯`, `♭`, `♮`, `𝄪`, `𝄫`), stack chords (`+3rd`, `+m3`, `+5th`, `+8ve`), add lyrics, and transpose diatonically/chromatically (`↑`/`↓`, `Shift+↑`/`↓`).
-  - **Palettes Sidebar**: Apply clefs (Treble, Bass, Alto, Tenor), key signatures (`7♭` to `7♯`), time signatures (`4/4`, `3/4`, `2/4`, `6/8`, `3/8`, `2/2`, `5/4`, `7/8`), dynamics (`ppp`–`fff`, `sfz`), articulations (staccato, accent, tenuto, marcato, fermata), barlines/repeats, and tempo markings.
-  - **Undo / Redo & Browser Auto-Save**: Up to 40-step edit history plus automatic local browser storage for the active score and recent scores.
-- **Local File & Web Link Import**:
-  - **Local Files**: Open via file picker or drag-and-drop directly onto the score canvas (`.mscz`, `.mscx`, `.musicxml`, `.mxl`, `.xml`, `.mid`, `.midi`, `.json`).
-  - **Web Links**: Load public HTTP/HTTPS score URLs through the built-in `/api/fetch-score` proxy (avoiding browser CORS issues and automatically converting standard GitHub `blob` URLs to raw file links). Supports opening directly via `?scoreUrl=<encoded-url>`.
-- **Polyphonic Web Audio Playback**:
-  - Lookahead Web Audio synthesizer with per-part timbres (`piano`, `strings`, `woodwind`, `brass`, `guitar`, `voice`), Mute/Solo/Volume mixer, real-time animated playhead cursor, metronome click, loop mode, and instant pitch auditioning.
-- **Multi-Format Export**:
-  - Export edited scores as `.mscz`, `.mscx`, `.musicxml`, `.mid`, `.json`, or Print / Save as PDF.
+## Highlights
+
+### Notation editing
+- **Publication-grade SVG engraving** with VexFlow 4.2.5: single staff, Grand Staff (piano), multi-part ensembles, linked tablature, A4 **Page** view or **Continuous** view, zoom 55%–180%, clean print/PDF output.
+- **Note Input Mode (`N`)** with a snapped ghost cursor, ledger lines, and live pitch (or drum-piece) readout.
+- **Keyboard workflow**: letter pitch entry (`A`–`G`), durations (`1`–`6`), dots (`.`), rests (`0`/`R`), ties (`T`), accidentals, diatonic/chromatic/octave transposition, and note navigation.
+- **Chords, ties, lyrics, dynamics, articulations, and barlines**; 40-step Undo/Redo and automatic browser autosave.
+- **Palettes** for clefs (treble, bass, alto, tenor, percussion), key signatures (7♭–7♯), time signatures, dynamics (`ppp`–`fff`, `sfz`), articulations, barlines/repeats, and tempo.
+
+### Chord leadsheets
+- **Chords tab** in the Inspector: add chord symbols (e.g. `Cmaj7`, `Am7`, `G7/B`) at any beat, with a quick-add palette.
+- Symbols are engraved **above the staff** and played back as **block chords** using the first pitched instrument.
+- Chords are stored per measure, survive reloads, and repeat with repeat barlines.
+
+### Guitar & bass tablature
+- Linked **6-string guitar TAB** (EADGBE) and **4-string bass TAB** (EADG), rendered under the notation staff.
+- **Fret editing**: pick a string and fret in the Inspector, or click a fret number on the TAB staff and type digits (`1` then `3` → fret 13). The notation above updates to the matching pitch.
+- Toggle **Linked Guitar TAB / Linked Bass TAB** per part in **Instruments & Mixer** (only shown for guitar/bass parts).
+
+### Sampled playback
+- Free **Musyng Kite General MIDI soundfont** (CC BY-SA 3.0), streamed on demand from `midi-js-soundfonts` and decoded with `soundfont-player`; GitHub Pages first, jsDelivr fallback.
+- Polyphonic lookahead scheduler, per-part Mute/Solo/Volume mixer, metronome, loop, tempo control, and an animated playhead.
+- Built-in synth fallback while samples load or when offline.
+- **Drum Kit** part with a synthesized acoustic-style kit (kick, snare, hats, toms, crash, ride, clap, cowbell, side stick).
+- Curated instruments: Piano, Acoustic Guitar, Electric Guitar, Bass Guitar, Violin, Viola, Cello, Flute, Clarinet, Trumpet, French Horn, Brass Section, Drum Kit, Choir Aahs, plus ensembles.
+
+### Import & export
+- Import `.mscz`, `.mscx`, `.musicxml`, `.mxl`, `.xml`, `.mid`, `.midi`, and OpusWeb `.json` via file picker or drag-and-drop.
+- Load public web links through the server proxy (`/api/fetch-score`) or `?scoreUrl=`; GitHub `blob` links are normalized to raw files.
+- Export `.mscz`, `.mscx`, `.musicxml`, `.mid`, `.json`, or print/save as PDF.
+
+### Appearance
+- Draggable **light ↔ dark theme slider** in the header (keyboard accessible: `←`/`→`, `Home`/`End`), persisted in `localStorage`.
+- Sheet pages stay white in both themes for accurate engraving and printing.
 
 ## Supported Formats
 
@@ -34,30 +55,62 @@ It allows musicians, educators, and students to create, open, edit, play back, a
 ## Quick Start
 
 ### Prerequisites
-
 - Node.js 20+ (tested on Node 22)
-- npm
+- npm or Bun
 
-### Installation & Development
-
+### Development
 ```bash
 npm install
 npm run dev
 ```
-
 The Express + Vite development server starts on `http://localhost:3000`.
 
-### Production Build & Start
-
+### Production build
 ```bash
 npm run build
 npm start
 ```
 
-### Type Checking
-
+### Type checking
 ```bash
 npm run lint
+```
+
+## GitHub Pages
+
+The site can be deployed as a static build. GitHub Pages cannot run the Express proxy, so **web-link import** requires the Node server; local file import, editing, playback, and export work fully static.
+
+```bash
+GITHUB_PAGES=true npm run build
+npx gh-pages -d dist
+```
+
+Set `GITHUB_PAGES=true` so Vite uses the project base path `/OpusWeb/`. The published site is served from the `gh-pages` branch.
+
+## Project Structure
+
+```
+src/
+├── App.tsx                     # Studio shell, keyboard shortcuts, file/export actions
+├── version.ts                  # App name, version, author
+├── types/score.ts              # Score AST (parts, staves, measures, notes, chords)
+├── components/
+│   ├── ToolbarRibbon.tsx       # Note input, durations, accidentals, zoom, measures
+│   ├── PaletteSidebar.tsx      # Clefs, keys, time, dynamics, articulations, barlines
+│   ├── ScoreCanvas.tsx         # VexFlow engraving, TAB staves, chord symbols, playhead
+│   ├── InspectorPanel.tsx      # Note inspector, chord leadsheet, parts mixer
+│   ├── ThemeSlider.tsx         # Draggable light/dark slider
+│   └── Modals.tsx              # New / Open / Export / Shortcuts dialogs
+├── audio/
+│   ├── synthEngine.ts          # Timeline, lookahead scheduler, repeat expansion
+│   ├── gmSoundfont.ts          # Musyng Kite sample loader & GM program map
+│   └── drumKit.ts              # Drum-kit mapping and synthesized percussion
+└── utils/
+    ├── musicTheory.ts          # Pitch math, measure packing, tab configs
+    ├── chords.ts               # Chord symbol parsing and block-chord voicings
+    ├── scoreParsers.ts         # MuseScore / MusicXML / MIDI import
+    ├── scoreExporters.ts       # MuseScore / MusicXML / MIDI / JSON export
+    └── starterScores.ts        # Templates and starter library
 ```
 
 ## Keyboard Shortcuts
@@ -75,10 +128,19 @@ npm run lint
 | `Delete` / `Backspace` | Clear selected note to rest |
 | `Space` | Play / Pause audio playback |
 | `Ctrl/Cmd + Z` | Undo (`Ctrl/Cmd + Shift + Z` to Redo) |
+| `0`–`9` (TAB selected) | Type a fret number on the selected TAB string |
+
+## Credits
+
+- **OpusWeb** — designed and built by **Ray Foo**.
+- **Musyng Kite General MIDI soundfont** — free sampled playback bank, licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), pre-rendered by the [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts) project. Samples are streamed on demand; no audio is bundled with this repository.
+- [VexFlow](https://www.vexflow.com/) for SVG music engraving.
+- [soundfont-player](https://github.com/danigb/soundfont-player) for soundfont decoding and playback.
 
 ## Documentation
 
-- [User Guide](./USER_GUIDE.md) — Step-by-step instructions for creating, importing, editing, and exporting scores.
-- [Architecture](./ARCHITECTURE.md) — Internal AST, parsers, exporters, VexFlow engraving pipeline, Web Audio engine, and server proxy.
+- [Features](./FEATURES.md) — Complete feature list, shortcuts, and current limitations.
+- [User Guide](./USER_GUIDE.md) — Step-by-step instructions for creating, importing, editing, playing, and exporting scores.
+- [Architecture](./ARCHITECTURE.md) — Score AST, parsers, exporters, VexFlow pipeline, audio engine, and server proxy.
 - [Contributing](./CONTRIBUTING.md) — Development workflow and conventions.
 - [Changelog](./CHANGELOG.md) — Release history.

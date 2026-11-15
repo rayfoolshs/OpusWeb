@@ -28,6 +28,7 @@ import {
 import {
   accidentalTypeToAlter,
   alterToAccidentalType,
+  assignTabPositions,
   cloneScore,
   createEmptyMeasure,
   createMeasureRest,
@@ -35,10 +36,13 @@ import {
   getEffectiveMeasureContext,
   getKeySignatureAlterMap,
   getMeasureCapacityBeats,
-  getValidGuitarPositions,
+  getTabConfig,
+  getValidTabPositions,
   midiToPitch,
   pitchToMidi,
   replaceEventInMeasureVoice,
+  supportsGuitarTab,
+  tabPositionToWrittenPitch,
   transposeDiatonic,
   uid,
 } from './utils/musicTheory';
@@ -58,6 +62,8 @@ import {
   createMinuetInG,
 } from './utils/starterScores';
 import { synthEngine } from './audio/synthEngine';
+import { APP_AUTHOR, APP_VERSION } from './version';
+import { ThemeMode, ThemeSlider } from './components/ThemeSlider';
 import { ToolbarRibbon } from './components/ToolbarRibbon';
 import { PaletteSidebar } from './components/PaletteSidebar';
 import { ScoreCanvas } from './components/ScoreCanvas';
@@ -71,6 +77,17 @@ import {
 
 const STORAGE_RECENT_KEY = 'opusweb_recent_scores_v1';
 const STORAGE_ACTIVE_KEY = 'opusweb_active_score_v1';
+const STORAGE_THEME_KEY = 'opusweb_theme_v1';
+
+function getInitialTheme(): ThemeMode {
+  try {
+    const saved = localStorage.getItem(STORAGE_THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    // Ignore storage error
+  }
+  return 'dark';
+}
 
 export default function App() {
   const [score, setScore] = useState<ScoreDocument>(() => {
@@ -120,6 +137,7 @@ export default function App() {
 
   const [zoom, setZoom] = useState(1);
   const [pageView, setPageView] = useState(true);
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [metronome, setMetronome] = useState(false);
@@ -133,6 +151,8 @@ export default function App() {
   const [toast, setToast] = useState<{ msg: string; type: 'info' | 'error' } | null>(null);
 
   const toastTimerRef = useRef<number | null>(null);
+  // Accumulates digits typed on the TAB staff so frets like 12 can be entered quickly
+  const tabFretBufferRef = useRef<{ digits: string; at: number }>({ digits: '', at: 0 });
 
   const showToast = useCallback((msg: string, type: 'info' | 'error' = 'info') => {
     setToast({ msg, type });
@@ -159,6 +179,23 @@ export default function App() {
   useEffect(() => {
     synthEngine.setOptions({ metronome, loop });
   }, [metronome, loop]);
+
+  // Warm up the sampled GM instruments for the current score
+  useEffect(() => {
+    synthEngine.preloadScore(score);
+  }, [score]);
+
+  // Apply & persist the light/dark studio theme
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    try {
+      localStorage.setItem(STORAGE_THEME_KEY, theme);
+    } catch {
+      // Ignore storage error
+    }
+  }, [theme]);
 
   const commitScoreChange = useCallback(
     (updater: (draft: ScoreDocument) => void) => {
@@ -289,7 +326,7 @@ export default function App() {
         (e) => e.id === target.eventId
       );
       if (ev && !ev.isRest && ev.notes.length > 0) {
-        ev.notes.forEach((n) => synthEngine.auditionPitch(n.pitch, part.timbre, 0.35));
+        ev.notes.forEach((n) => synthEngine.auditionPitch(n.pitch, part.timbre, 0.35, part.program, part.drumKit));
       }
     },
     [score]
@@ -325,6 +362,7 @@ export default function App() {
         measureIndex: target.measureIndex,
         voiceIndex: vIdx,
         eventId: target.eventId,
+        source: selection?.source,
       });
     },
     [score, selection, handleSelectEvent]
@@ -349,7 +387,7 @@ export default function App() {
       const cap = getMeasureCapacityBeats(eff.beats, eff.beatType);
 
       if (!toolState.isRestMode) {
-        synthEngine.auditionPitch(pitch, part.timbre, 0.4);
+        synthEngine.auditionPitch(pitch, part.timbre, 0.4, part.program, part.drumKit);
       }
 
       let nextSelectionEventId: string | null = null;
@@ -444,11 +482,86 @@ export default function App() {
           }
           nh.tabString = undefined;
           nh.tabFret = undefined;
-          synthEngine.auditionPitch(nh.pitch, dPart.timbre, 0.35);
+          synthEngine.auditionPitch(nh.pitch, dPart.timbre, 0.35, dPart.program, dPart.drumKit);
         });
       });
     },
     [selection, score, commitScoreChange]
+  );
+
+  // Editing a TAB position (string + fret) rewrites the notation pitch above it
+  const setSelectedGuitarTabPosition = useCallback(
+    (noteIndex: number, tabString: number, tabFret: number) => {
+      if (!selection?.eventId) return;
+      const part = score.parts[selection.partIndex];
+      if (!part) return;
+      const tabConfig = getTabConfig(part);
+      if (!tabConfig) return;
+      const eff = getEffectiveMeasureContext(
+        part,
+        selection.staffIndex,
+        selection.measureIndex,
+        score.defaultTempo
+      );
+      const str = Math.max(1, Math.min(tabConfig.strings, Math.round(tabString)));
+      const fret = Math.max(0, Math.min(24, Math.round(tabFret)));
+      const nextPitch = tabPositionToWrittenPitch(str, fret, tabConfig, eff.keyFifths);
+
+      synthEngine.auditionPitch(nextPitch, part.timbre, 0.35, part.program, part.drumKit);
+
+      commitScoreChange((draft) => {
+        const ev = draft.parts[selection.partIndex]?.staves[selection.staffIndex]?.measures[
+          selection.measureIndex
+        ]?.voices[selection.voiceIndex]?.find((e) => e.id === selection.eventId);
+        if (!ev || ev.isRest) return;
+        const note = ev.notes[noteIndex];
+        if (!note) return;
+        note.pitch = nextPitch;
+        note.tabString = str;
+        note.tabFret = fret;
+      });
+    },
+    [selection, score, commitScoreChange]
+  );
+
+  // Apply a typed fret number to the selected TAB string (keeps the current string)
+  const applySelectedTabFret = useCallback(
+    (fret: number) => {
+      if (!selection?.eventId) return;
+      const part = score.parts[selection.partIndex];
+      const ev = part?.staves[selection.staffIndex]?.measures[selection.measureIndex]?.voices[
+        selection.voiceIndex
+      ]?.find((e) => e.id === selection.eventId);
+      if (!ev || ev.isRest || ev.notes.length === 0) return;
+
+      const tabConfig = getTabConfig(part);
+      if (!tabConfig) return;
+      const candidateIdx = selection.noteIndex ?? -1;
+      const noteIndex = candidateIdx >= 0 && candidateIdx < ev.notes.length ? candidateIdx : 0;
+      const assigned = assignTabPositions(ev.notes, tabConfig).find(
+        (p) => p.noteId === ev.notes[noteIndex].id
+      );
+      setSelectedGuitarTabPosition(noteIndex, assigned?.str ?? 1, fret);
+    },
+    [selection, score, setSelectedGuitarTabPosition]
+  );
+
+  // Digit buffer so "1" then "2" becomes fret 12 instead of two separate edits
+  const typeTabFretDigit = useCallback(
+    (digit: number) => {
+      const now = Date.now();
+      const buffer = tabFretBufferRef.current;
+      const continuing = now - buffer.at < 900;
+      let digits = `${continuing ? buffer.digits : ''}${digit}`.replace(/^0+(?=\d)/, '');
+      let value = Number(digits);
+      if (!Number.isFinite(value) || value > 24) {
+        digits = String(digit);
+        value = digit;
+      }
+      tabFretBufferRef.current = { digits, at: now };
+      applySelectedTabFret(value);
+    },
+    [applySelectedTabFret]
   );
 
   const deleteSelectedEvent = useCallback(() => {
@@ -622,6 +735,45 @@ export default function App() {
     [selection, commitScoreChange]
   );
 
+  // Chord leadsheet: symbols attach to the lead staff's measure and play as block chords
+  const handleAddChord = useCallback(
+    (measureIndex: number, beat: number, symbol: string) => {
+      const trimmed = symbol.trim();
+      if (!trimmed) return;
+      commitScoreChange((draft) => {
+        const measure = draft.parts[0]?.staves[0]?.measures[measureIndex];
+        if (!measure) return;
+        const chords = measure.chordSymbols ? [...measure.chordSymbols] : [];
+        const existingIndex = chords.findIndex((c) => Math.abs(c.beat - beat) < 0.01);
+        const nextChord = {
+          id: existingIndex >= 0 ? chords[existingIndex].id : uid('chord'),
+          beat,
+          symbol: trimmed,
+        };
+        if (existingIndex >= 0) {
+          chords[existingIndex] = nextChord;
+        } else {
+          chords.push(nextChord);
+        }
+        measure.chordSymbols = chords.sort((a, b) => a.beat - b.beat);
+      });
+      showToast(`Added chord ${trimmed}`);
+    },
+    [commitScoreChange, showToast]
+  );
+
+  const handleRemoveChord = useCallback(
+    (measureIndex: number, chordId: string) => {
+      commitScoreChange((draft) => {
+        const measure = draft.parts[0]?.staves[0]?.measures[measureIndex];
+        if (!measure?.chordSymbols) return;
+        const remaining = measure.chordSymbols.filter((chord) => chord.id !== chordId);
+        measure.chordSymbols = remaining.length > 0 ? remaining : undefined;
+      });
+    },
+    [commitScoreChange]
+  );
+
   // Measure Add / Delete
   const handleAddMeasure = useCallback(() => {
     commitScoreChange((draft) => {
@@ -703,6 +855,16 @@ export default function App() {
         e.preventDefault();
         setToolState((t) => ({ ...t, noteInputMode: !t.noteInputMode }));
         return;
+      }
+
+      // Typing a number on a selected TAB fret edits that fret (MuseScore-style)
+      if (/^[0-9]$/.test(e.key) && selection?.source === 'tab' && selection.eventId) {
+        const tabPart = score.parts[selection.partIndex];
+        if (tabPart?.showTab && supportsGuitarTab(tabPart)) {
+          e.preventDefault();
+          typeTabFretDigit(Number(e.key));
+          return;
+        }
       }
 
       const durMap: Record<string, DurationType> = {
@@ -820,6 +982,7 @@ export default function App() {
     deleteSelectedEvent,
     handleSetSelectedDuration,
     handleInsertOrReplaceNote,
+    typeTabFretDigit,
     toolState,
     selection,
     score,
@@ -903,27 +1066,33 @@ export default function App() {
   const activeBeatDisplay = playhead ? Math.floor(playhead.beatInMeasure) + 1 : 1;
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#14171C] text-slate-100">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[var(--bg-app)] text-[var(--text-strong)]">
       {/* Top Bar: Clean 3-Zone Studio Contract */}
-      <header className="no-print h-13 bg-[#14171C] border-b border-white/8 px-4 flex items-center justify-between gap-8 shrink-0">
+      <header className="no-print h-13 bg-[var(--bg-app)] border-b border-[var(--border)] px-4 flex items-center justify-between gap-8 shrink-0">
         {/* Zone 1: Single-line Brand & Active Score Title */}
         <div className="flex items-center gap-4 min-w-0">
-          <span className="text-base font-bold tracking-tight text-white whitespace-nowrap shrink-0">
+          <span className="text-base font-bold tracking-tight text-[var(--text-strong)] whitespace-nowrap shrink-0">
             OpusWeb
           </span>
-          <span className="text-slate-600 select-none" aria-hidden="true">
+          <span className="text-[10px] font-mono-tabular text-[var(--text-faint)] whitespace-nowrap shrink-0">
+            v{APP_VERSION}
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap shrink-0 hidden sm:inline">
+            by {APP_AUTHOR}
+          </span>
+          <span className="text-[var(--text-faint)] select-none" aria-hidden="true">
             /
           </span>
           <div className="flex items-center gap-2 min-w-0 text-xs">
-            <span className="font-medium text-slate-200 truncate max-w-[220px]">
+            <span className="font-medium text-[var(--text-strong)] truncate max-w-[220px]">
               {score.title}
             </span>
             {score.sourceLabel && (
               <>
-                <span className="text-slate-600 hidden sm:inline" aria-hidden="true">
+                <span className="text-[var(--text-faint)] hidden sm:inline" aria-hidden="true">
                   ·
                 </span>
-                <span className="text-slate-400 hidden sm:inline whitespace-nowrap">
+                <span className="text-[var(--text-muted)] hidden sm:inline whitespace-nowrap">
                   {score.sourceLabel}
                 </span>
               </>
@@ -932,12 +1101,12 @@ export default function App() {
         </div>
 
         {/* Zone 2: Audio Transport & Tempo */}
-        <div className="flex items-center gap-1.5 bg-[#1B1F27] border border-white/8 rounded-lg px-2 py-1 shrink-0">
+        <div className="flex items-center gap-1.5 bg-[var(--bg-raised)] border border-[var(--border)] rounded-lg px-2 py-1 shrink-0">
           <button
             type="button"
             onClick={handleRewind}
             title="Rewind to Start"
-            className="h-7 w-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white transition-colors"
+            className="h-7 w-7 rounded flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] transition-colors"
           >
             <SkipBack className="w-3.5 h-3.5" />
           </button>
@@ -948,7 +1117,7 @@ export default function App() {
             className={`h-7 px-2.5 rounded flex items-center gap-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
               isPlaying
                 ? 'bg-blue-600 text-white'
-                : 'bg-white/10 text-white hover:bg-blue-600'
+                : 'bg-[var(--surface-hover)] text-[var(--text-strong)] hover:bg-blue-600 hover:text-white'
             }`}
           >
             {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -958,19 +1127,19 @@ export default function App() {
             type="button"
             onClick={handleStop}
             title="Stop"
-            className="h-7 w-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/8 hover:text-white transition-colors"
+            className="h-7 w-7 rounded flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] transition-colors"
           >
             <Square className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div className="w-px h-4 bg-[var(--surface-hover)] mx-1" />
 
           <button
             type="button"
             onClick={() => setMetronome((m) => !m)}
             title="Toggle Metronome Click"
             className={`h-7 px-2 rounded flex items-center gap-1 text-xs transition-colors whitespace-nowrap ${
-              metronome ? 'bg-blue-600/25 text-blue-300' : 'text-slate-400 hover:text-white'
+              metronome ? 'bg-blue-600/25 text-[var(--accent-text-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]'
             }`}
           >
             <Timer className="w-3.5 h-3.5" />
@@ -981,19 +1150,19 @@ export default function App() {
             onClick={() => setLoop((l) => !l)}
             title="Toggle Loop Playback"
             className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${
-              loop ? 'bg-blue-600/25 text-blue-300' : 'text-slate-400 hover:text-white'
+              loop ? 'bg-blue-600/25 text-[var(--accent-text-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]'
             }`}
           >
             <Repeat className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div className="w-px h-4 bg-[var(--surface-hover)] mx-1" />
 
-          <div className="flex items-center gap-1 text-xs font-mono-tabular text-slate-300 px-1 whitespace-nowrap">
-            <span className="text-slate-500">m.{activeMeasureIdx + 1}</span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-400">b.{activeBeatDisplay}</span>
-            <span className="text-slate-600 mx-1">|</span>
+          <div className="flex items-center gap-1 text-xs font-mono-tabular text-[var(--text)] px-1 whitespace-nowrap">
+            <span className="text-[var(--text-faint)]">m.{activeMeasureIdx + 1}</span>
+            <span className="text-[var(--text-faint)]">·</span>
+            <span className="text-[var(--text-muted)]">b.{activeBeatDisplay}</span>
+            <span className="text-[var(--text-faint)] mx-1">|</span>
             <span>♩=</span>
             <input
               type="number"
@@ -1006,25 +1175,26 @@ export default function App() {
                   d.defaultTempo = bpm;
                 });
               }}
-              className="w-11 bg-transparent text-right font-mono-tabular text-slate-100 focus:outline-none border-b border-transparent focus:border-blue-500"
+              className="w-11 bg-transparent text-right font-mono-tabular text-[var(--text-strong)] focus:outline-none border-b border-transparent focus:border-blue-500"
             />
           </div>
         </div>
 
         {/* Zone 3: Primary File & Export Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          <ThemeSlider theme={theme} onChange={setTheme} />
           <button
             type="button"
             onClick={() => setShortcutsVisible(true)}
             title="Keyboard Shortcuts"
-            className="h-8 w-8 rounded-md text-slate-400 hover:bg-white/8 hover:text-white flex items-center justify-center transition-colors"
+            className="h-8 w-8 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] flex items-center justify-center transition-colors"
           >
             <Keyboard className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => setNewModalVisible(true)}
-            className="h-8 px-3 rounded-md bg-white/6 hover:bg-white/12 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            className="h-8 px-3 rounded-md bg-[var(--surface-soft)] hover:bg-[var(--surface-hover)] text-xs font-medium text-[var(--text-strong)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
           >
             <FilePlus2 className="w-3.5 h-3.5" />
             <span>New</span>
@@ -1032,7 +1202,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setOpenModalVisible(true)}
-            className="h-8 px-3 rounded-md bg-white/6 hover:bg-white/12 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            className="h-8 px-3 rounded-md bg-[var(--surface-soft)] hover:bg-[var(--surface-hover)] text-xs font-medium text-[var(--text-strong)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
           >
             <FolderOpen className="w-3.5 h-3.5" />
             <span>Open / Import</span>
@@ -1192,18 +1362,21 @@ export default function App() {
               const topNote = ev.notes[ev.notes.length - 1];
               const newPitch = midiToPitch(pitchToMidi(topNote.pitch) + semitones, eff.keyFifths);
               ev.notes.push(createNoteHead(newPitch));
-              synthEngine.auditionPitch(newPitch, part.timbre, 0.35);
+              synthEngine.auditionPitch(newPitch, part.timbre, 0.35, part.program, part.drumKit);
             });
           }}
+          onSetGuitarTabPosition={setSelectedGuitarTabPosition}
           onCycleGuitarTabString={(dir) => {
             if (!selection?.eventId) return;
             commitScoreChange((draft) => {
-              const ev = draft.parts[selection.partIndex]?.staves[selection.staffIndex]?.measures[
-                selection.measureIndex
-              ]?.voices[selection.voiceIndex]?.find((e) => e.id === selection.eventId);
-              if (!ev || ev.isRest || ev.notes.length === 0) return;
+              const part = draft.parts[selection.partIndex];
+              const tabConfig = part ? getTabConfig(part) : null;
+              const ev = part?.staves[selection.staffIndex]?.measures[selection.measureIndex]?.voices[
+                selection.voiceIndex
+              ]?.find((e) => e.id === selection.eventId);
+              if (!tabConfig || !ev || ev.isRest || ev.notes.length === 0) return;
               const nh = ev.notes[0];
-              const options = getValidGuitarPositions(nh.pitch);
+              const options = getValidTabPositions(nh.pitch, tabConfig);
               if (options.length <= 1) return;
               const curStr = nh.tabString ?? options[0].str;
               const curIdx = options.findIndex((o) => o.str === curStr);
@@ -1218,8 +1391,14 @@ export default function App() {
           onUpdatePartMixer={(pIdx, patch) => {
             setScore((prev) => {
               const next = cloneScore(prev);
-              if (next.parts[pIdx]) {
-                Object.assign(next.parts[pIdx], patch);
+              const part = next.parts[pIdx];
+              if (part) {
+                const safePatch = { ...patch };
+                // Linked TAB is only meaningful for guitar-family instruments
+                if (safePatch.showTab !== undefined && !supportsGuitarTab(part)) {
+                  delete safePatch.showTab;
+                }
+                Object.assign(part, safePatch);
               }
               return next;
             });
@@ -1259,10 +1438,12 @@ export default function App() {
                 name: preset.name,
                 shortName: preset.shortName,
                 timbre: preset.timbre,
+                program: preset.program,
                 volume: 0.85,
                 muted: false,
                 solo: false,
                 showTab: Boolean(preset.showTab),
+                drumKit: Boolean(preset.drumKit),
                 staves: newStaves,
               });
             });
@@ -1287,6 +1468,8 @@ export default function App() {
               if (meas) meas.attributes.tempo = tempo;
             });
           }}
+          onAddChord={handleAddChord}
+          onRemoveChord={handleRemoveChord}
         />
       </div>
 
@@ -1348,7 +1531,7 @@ export default function App() {
           className={`no-print fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-lg border text-xs font-medium shadow-xl transition-opacity ${
             toast.type === 'error'
               ? 'bg-rose-950/95 border-rose-500/50 text-rose-100'
-              : 'bg-[#1C212B]/95 border-white/15 text-slate-100'
+              : 'bg-[var(--bg-panel)] border-[var(--border-strong)] text-[var(--text-strong)]'
           }`}
         >
           {toast.msg}
