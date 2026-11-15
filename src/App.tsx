@@ -62,6 +62,7 @@ import {
   createMinuetInG,
 } from './utils/starterScores';
 import { synthEngine } from './audio/synthEngine';
+import { applyThemeLevel } from './theme';
 import { APP_AUTHOR, APP_VERSION } from './version';
 import { ThemeMode, ThemeSlider } from './components/ThemeSlider';
 import { ToolbarRibbon } from './components/ToolbarRibbon';
@@ -217,6 +218,8 @@ export default function App() {
     const root = document.documentElement;
     root.dataset.theme = theme;
     root.style.colorScheme = theme;
+    // Interpolate the full UI palette between light and dark
+    applyThemeLevel(themeLevel);
     try {
       localStorage.setItem(STORAGE_THEME_KEY, theme);
       localStorage.setItem(STORAGE_THEME_LEVEL_KEY, String(themeLevel));

@@ -90,7 +90,7 @@ Click **Export** in the top-right corner to download:
 
 ## 7. Light & Dark Theme
 
-Use the sun/moon slider in the top-right header to switch the studio chrome between **light** and **dark**. The slider runs **0%–100%** and shows the current percentage beside the track: below **50%** the studio is light, at **50% or above** it is dark. The knob stays wherever you release it instead of snapping to the ends. Drag it, click anywhere on the track, or focus it and use `←` / `→`, `Home` (0%), or `End` (100%). The level and theme are saved in your browser and restored on the next visit. Sheet pages always stay white for accurate engraving and printing.
+Use the sun/moon slider in the top-right header to switch the studio chrome between **light** and **dark**. The slider runs **0%–100%** and scales the whole interface continuously: backgrounds, panels, buttons, borders, scrollbars, and accents interpolate between the light and dark palettes as you move it. The current percentage is shown beside the track. Text switches at the **50% midpoint** so labels stay readable against mid-gray surfaces. The knob stays wherever you release it instead of snapping to the ends. Drag it, click anywhere on the track, or focus it and use `←` / `→`, `Home` (0%), or `End` (100%). The level and theme are saved in your browser and restored on the next visit. Sheet pages always stay white for accurate engraving and printing.
 
 ## 8. Version & Shortcuts
 

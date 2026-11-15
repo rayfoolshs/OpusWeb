@@ -95,7 +95,7 @@ Tablature is driven by a `TabInstrumentConfig`:
 
 ## Theme System (`src/index.css`, `src/components/ThemeSlider.tsx`)
 
-UI colors are CSS custom properties on `:root[data-theme]` (`--bg-*`, `--text-*`, `--border-*`, `--surface-*`, accent, scrollbar, page shadow, knob colors). `ThemeSlider` is a draggable range input that snaps to light/dark and persists the choice in `localStorage`; `index.html` applies the saved theme before first paint. Score pages remain white in both themes and in print.
+UI colors are CSS custom properties (`--bg-*`, `--text-*`, `--border-*`, `--surface-*`, accent, scrollbar, knob colors). `src/theme.ts` holds the light and dark palettes and interpolates every token for the 0–100% slider level, writing inline variables on `:root`. Text tokens switch at the 50% midpoint (with a small mid-scale contrast boost) so labels stay readable while surfaces darken smoothly. `ThemeSlider` is a draggable percentage range input that keeps its position; both theme and level persist in `localStorage`, and `index.html` applies the saved theme before first paint. Score pages remain white at every level and in print.
 
 ## Server Proxy (`server.ts`)
 

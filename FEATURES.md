@@ -72,7 +72,7 @@ A complete reference of what the studio can do, how playback works, and current 
 - `.mscz` (MuseScore 3/4), `.mscx`, `.musicxml` 3.1, `.mid` (SMF Format 1), `.opusweb.json`, and **Print / Save as PDF**.
 
 ## Appearance
-- **Light / dark theme** with a draggable sun/moon slider that runs **0%–100%** (below 50% = light, 50%+ = dark) and shows the current percentage. The knob keeps its position instead of snapping to the ends.
+- **Continuous 0%–100% theme scaling** with a draggable sun/moon slider: surfaces, borders, buttons, scrollbars, and accents interpolate smoothly between light and dark, with a percentage readout. Text switches at 50% for contrast, and the knob keeps its position instead of snapping to the ends.
 - **Keyboard support**: arrow keys, `Home` (0%), and `End` (100%).
 - **Persistent choice** of both theme and slider level across reloads.
 - **Print-safe**: studio chrome is hidden and pages print white regardless of theme.
