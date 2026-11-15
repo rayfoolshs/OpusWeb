@@ -458,6 +458,9 @@ class ScoreSynthEngine {
     startMeasureIndex = 0,
     onTick?: (measureIndex: number, beatInMeasure: number, playing: boolean) => void
   ) {
+    // Clear the previous run's callback before stopping, otherwise stop() reports
+    // playing=false into the UI and the fresh playback loses its playhead.
+    this.onTickCallback = null;
     this.stop();
     const ctx = this.ensureContext();
     this.preloadScore(score);
