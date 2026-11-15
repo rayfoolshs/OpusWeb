@@ -24,6 +24,7 @@ All notable changes to OpusWeb are documented in this file.
 - UI chrome moved to CSS theme tokens for consistent light/dark styling.
 
 ### Fixed
+- Playhead could disappear after pressing Stop then Play (or Pause then Play) because the previous run's tick callback reported `playing=false` into the fresh session. The engine now clears the stale callback before starting.
 - Repeat barlines previously only drew; they now affect playback order.
 - Linked TAB is no longer offered on piano, strings, brass, voice, or drum parts.
 - Bass tablature no longer applies the guitar octave transposition.
