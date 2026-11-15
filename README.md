@@ -82,7 +82,7 @@ The site can be deployed as a static build. GitHub Pages cannot run the Express 
 
 ```bash
 GITHUB_PAGES=true npm run build
-npx gh-pages -d dist
+npx gh-pages -d dist --dotfiles
 ```
 
 Set `GITHUB_PAGES=true` so Vite uses the project base path `/OpusWeb/`. The published site is served from the `gh-pages` branch.
