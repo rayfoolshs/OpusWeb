@@ -38,7 +38,7 @@ It lets musicians, educators, and students create, open, edit, play back, and ex
 - Export `.mscz`, `.mscx`, `.musicxml`, `.mid`, `.json`, or print/save as PDF.
 
 ### Appearance
-- Draggable **light ↔ dark theme slider** in the header (keyboard accessible: `←`/`→`, `Home`/`End`), persisted in `localStorage`.
+- Draggable **0%–100% light ↔ dark theme slider** in the header with a percentage readout (below 50% = light, 50%+ = dark). The knob keeps its position, and both theme and level persist in `localStorage`.
 - Sheet pages stay white in both themes for accurate engraving and printing.
 
 ## Supported Formats

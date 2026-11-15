@@ -6,6 +6,7 @@ All notable changes to OpusWeb are documented in this file.
 
 ### Added
 - **Light & dark studio themes** with a draggable sun/moon slider in the header (keyboard accessible; persisted in `localStorage`). Sheet pages stay white in both themes.
+- **0–100% theme level**: the slider shows its percentage, keeps the knob where you release it (no snapping to the ends), switches theme at 50%, and restores both the theme and level on reload.
 - **Guitar TAB fingering editor**: choose a string and fret in the Inspector, or click a fret number on the TAB staff and type digits (buffered for two-digit frets). The notation above updates to the matching pitch.
 - **Bass TAB support**: 4-string EADG tablature with its own tuning/voicing model, plus a `Linked Bass TAB` toggle.
 - **Sampled General MIDI playback** from the free **Musyng Kite** soundfont (CC BY-SA 3.0), streamed on demand with GitHub Pages and jsDelivr mirrors, decoded by `soundfont-player`, with a synth fallback while loading or offline.

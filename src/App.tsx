@@ -78,15 +78,32 @@ import {
 const STORAGE_RECENT_KEY = 'opusweb_recent_scores_v1';
 const STORAGE_ACTIVE_KEY = 'opusweb_active_score_v1';
 const STORAGE_THEME_KEY = 'opusweb_theme_v1';
+const STORAGE_THEME_LEVEL_KEY = 'opusweb_theme_level_v1';
 
-function getInitialTheme(): ThemeMode {
+interface ThemeState {
+  theme: ThemeMode;
+  /** Slider position 0–100: 0 = lightest, 100 = darkest */
+  level: number;
+}
+
+function getInitialThemeState(): ThemeState {
   try {
-    const saved = localStorage.getItem(STORAGE_THEME_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
+    const savedLevel = localStorage.getItem(STORAGE_THEME_LEVEL_KEY);
+    if (savedLevel !== null) {
+      const parsed = Number(savedLevel);
+      if (Number.isFinite(parsed)) {
+        const level = Math.max(0, Math.min(100, Math.round(parsed)));
+        return { theme: level >= 50 ? 'dark' : 'light', level };
+      }
+    }
+    const savedTheme = localStorage.getItem(STORAGE_THEME_KEY);
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return { theme: savedTheme, level: savedTheme === 'dark' ? 100 : 0 };
+    }
   } catch {
     // Ignore storage error
   }
-  return 'dark';
+  return { theme: 'dark', level: 100 };
 }
 
 export default function App() {
@@ -137,7 +154,9 @@ export default function App() {
 
   const [zoom, setZoom] = useState(1);
   const [pageView, setPageView] = useState(true);
-  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [themeState, setThemeState] = useState<ThemeState>(getInitialThemeState);
+  const theme = themeState.theme;
+  const themeLevel = themeState.level;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [metronome, setMetronome] = useState(false);
@@ -185,17 +204,26 @@ export default function App() {
     synthEngine.preloadScore(score);
   }, [score]);
 
-  // Apply & persist the light/dark studio theme
+  const handleThemeLevel = useCallback((level: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(level)));
+    setThemeState({
+      theme: clamped >= 50 ? 'dark' : 'light',
+      level: clamped,
+    });
+  }, []);
+
+  // Apply & persist the light/dark studio theme and the 0–100% slider level
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = theme;
     root.style.colorScheme = theme;
     try {
       localStorage.setItem(STORAGE_THEME_KEY, theme);
+      localStorage.setItem(STORAGE_THEME_LEVEL_KEY, String(themeLevel));
     } catch {
       // Ignore storage error
     }
-  }, [theme]);
+  }, [theme, themeLevel]);
 
   const commitScoreChange = useCallback(
     (updater: (draft: ScoreDocument) => void) => {
@@ -1182,7 +1210,7 @@ export default function App() {
 
         {/* Zone 3: Primary File & Export Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <ThemeSlider theme={theme} onChange={setTheme} />
+          <ThemeSlider theme={theme} level={themeLevel} onLevelChange={handleThemeLevel} />
           <button
             type="button"
             onClick={() => setShortcutsVisible(true)}
