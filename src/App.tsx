@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BookOpen,
   Download,
   FilePlus2,
   FolderOpen,
@@ -75,6 +76,8 @@ import {
   OpenScoreModal,
   ShortcutsModal,
 } from './components/Modals';
+
+const MANUAL_PDF_URL = `${import.meta.env.BASE_URL}OpusWeb-v1.1.0-User-Manual.pdf`;
 
 const STORAGE_RECENT_KEY = 'opusweb_recent_scores_v1';
 const STORAGE_ACTIVE_KEY = 'opusweb_active_score_v1';
@@ -1214,6 +1217,16 @@ export default function App() {
         {/* Zone 3: Primary File & Export Actions */}
         <div className="flex items-center gap-2 shrink-0">
           <ThemeSlider theme={theme} level={themeLevel} onLevelChange={handleThemeLevel} />
+          <a
+            href={MANUAL_PDF_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="User Manual (PDF)"
+            className="h-8 px-2.5 rounded-md text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Manual</span>
+          </a>
           <button
             type="button"
             onClick={() => setShortcutsVisible(true)}
